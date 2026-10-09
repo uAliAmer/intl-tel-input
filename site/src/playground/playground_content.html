@@ -1,0 +1,211 @@
+<div class="iti-playground" id="itiPlayground">
+
+  <template id="itiPlaygroundInfoIconTemplate">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" focusable="false">
+      <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+      <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+    </svg>
+  </template>
+
+  <template id="itiPlaygroundOptionGroupTemplate">
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex align-items-center justify-content-between gap-2">
+          <h2 class="h5 mb-0" data-role="title"></h2>
+          <div class="d-flex gap-2">
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm playground-action-btn"
+              data-role="reset"
+              data-playground-reset="options"
+            >
+              <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>
+              <span data-role="label">Reset</span>
+            </button>
+          </div>
+        </div>
+        <p class="text-muted mt-2 mb-3" data-role="description"></p>
+        <div class="vstack gap-3" data-role="stack"></div>
+      </div>
+    </div>
+  </template>
+
+  <div class="mb-4">
+    <div class="d-flex align-items-start justify-content-between gap-3">
+      <h1 class="h3 mb-0">Playground</h1>
+      <div class="ms-auto text-end">
+        <label for="playgroundPresetsSelect" class="form-label visually-hidden">Playground presets</label>
+        <div class="d-flex gap-2">
+          <select id="playgroundPresetsSelect" class="form-select form-select-sm playground-presets-select" aria-label="Playground presets">
+            <option value="">Presets</option>
+{{PLAYGROUND_PRESETS}}
+          </select>
+        </div>
+      </div>
+    </div>
+    <p class="text-muted mt-3 mb-3">
+      Try different <code>intl-tel-input</code> initialisation options and see it update live.
+      <span class="d-none d-lg-inline">
+        <br />
+        (The URL updates with each change, so it's easy to share your setup)
+      </span>
+    </p>
+  </div>
+
+  <div class="iti-playground-layout">
+    <div class="iti-playground-layout__col iti-playground-layout__col--left">
+      <div class="iti-playground-layout__options">
+        <form id="playgroundOptions" class="vstack gap-3" aria-label="intl-tel-input initialisation options">
+          <!-- JS renders group cards here -->
+        </form>
+      </div>
+
+      <div class="iti-playground-layout__attrs">
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between gap-2">
+              <h2 class="h5 mb-0" id="settings">
+                <i class="bi bi-sliders text-muted me-2" aria-hidden="true"></i>
+                <a href="#settings" class="header-anchor">Settings</a>
+              </h2>
+              <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm playground-action-btn" id="playgroundResetAttrs">
+                  <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>
+                  <span data-role="label">Reset</span>
+                </button>
+              </div>
+            </div>
+            <p class="text-muted mt-2 mb-3">
+              These map to attributes on the <code>&lt;input&gt;</code> (vanilla JavaScript library) or props on <code>&lt;IntlTelInput&gt;</code> (framework components).
+            </p>
+
+            <form id="playgroundAttributes" class="vstack gap-3" aria-label="Settings">
+              <!-- JS renders controls here -->
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="iti-playground-layout__col iti-playground-layout__col--right">
+      <div class="iti-playground-layout__demo">
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between gap-2">
+              <h2 class="h5 mb-0" id="live-demo">
+                <i class="bi bi-play-circle text-muted me-2" aria-hidden="true"></i>
+                Live Demo
+              </h2>
+              <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm playground-action-btn" id="playgroundResetAll">
+                  <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>
+                  <span data-role="label">Reset All</span>
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm playground-action-btn" id="playgroundShareBtn">
+                  <i class="bi bi-share me-1" aria-hidden="true"></i>
+                  <span data-role="label">Share</span>
+                </button>
+              </div>
+            </div>
+            <p class="text-muted mt-2 mb-3">
+              Re-initialised on every option change. <a href="#initialCountryLookup" style="color:inherit">initialCountryLookup</a> enabled for a better experience. Dropdown kept open so you can see options take effect.
+            </p>
+
+            <div class="demo-input-wrap position-relative">
+              <div class="toast-container demo-toast-container">
+                <div id="playgroundStrictRejectToast" class="toast text-bg-primary" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="4000">
+                  <div class="d-flex">
+                    <div class="toast-body" id="playgroundStrictRejectToastBody"></div>
+                    <button type="button" class="btn-close btn-close-white me-2" data-bs-dismiss="toast" aria-label="Close"></button>
+                  </div>
+                </div>
+                <div id="playgroundKeepDropdownOpenToast" class="toast text-bg-primary" role="status" aria-live="polite" aria-atomic="true" data-bs-delay="8000">
+                  <div class="d-flex">
+                    <div class="toast-body" id="playgroundKeepDropdownOpenToastBody">In this demo, the dropdown stays open after selecting a country because <a href="#keep-dropdown-open" class="link-light">Keep dropdown open</a> is enabled</div>
+                    <button type="button" class="btn-close btn-close-white me-2" data-bs-dismiss="toast" aria-label="Close"></button>
+                  </div>
+                </div>
+                <div id="playgroundKeepDropdownOpenFlagToast" class="toast text-bg-primary" role="status" aria-live="polite" aria-atomic="true" data-bs-delay="8000">
+                  <div class="d-flex">
+                    <div class="toast-body" id="playgroundKeepDropdownOpenFlagToastBody">In this demo, the dropdown stays open when you click the selected flag because <a href="#keep-dropdown-open" class="link-light">Keep dropdown open</a> is enabled</div>
+                    <button type="button" class="btn-close btn-close-white me-2" data-bs-dismiss="toast" aria-label="Close"></button>
+                  </div>
+                </div>
+              </div>
+              <input type="tel" id="playgroundPhone" class="form-control" title="Enter your phone number" />
+              <div class="iti-playground-demo-aside">
+                <div class="iti-live-results">Type a number to see the output here</div>
+                <div class="iti-playground-demo-controls">
+                  <div class="iti-playground-demo-controls__heading">Demo controls <span class="iti-playground-demo-controls__subheading">(won't affect your own integration)</span></div>
+                  <div class="form-check mt-2 playground-dropdown-checkbox" id="keep-dropdown-open">
+                    <input class="form-check-input" type="checkbox" id="playgroundKeepDropdownOpen" checked />
+                    <span class="d-inline-flex align-items-center" style="gap: 0.4rem;">
+                      <label class="form-check-label" for="playgroundKeepDropdownOpen">Keep dropdown open</label>
+                      <span class="iti-playground-info" id="playgroundKeepDropdownOpenInfo" tabindex="0" data-bs-toggle="tooltip" data-bs-html="true" data-bs-title="Recommended. Always keeps the dropdown open so you can see how option changes affect it without having to reopen it each time.">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" focusable="false">
+                          <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                          <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+                        </svg>
+                      </span>
+                    </span>
+                  </div>
+                  <div class="form-check mt-2" id="sync-demo-state">
+                    <input class="form-check-input" type="checkbox" id="playgroundSyncDemoState" checked />
+                    <span class="d-inline-flex align-items-center" style="gap: 0.4rem;">
+                      <label class="form-check-label" for="playgroundSyncDemoState">Sync demo state to config</label>
+                      <span class="iti-playground-info" id="playgroundSyncDemoStateInfo" tabindex="0" data-bs-toggle="tooltip" data-bs-html="true" data-bs-title="Recommended. Keeps your selected country and typed number in sync with <code>initialCountry</code> and <code>Initial value</code>, so they're preserved when the demo re-initialises after changing other options.">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" focusable="false">
+                          <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                          <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+                        </svg>
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="iti-playground-layout__code">
+        <div class="card">
+          <div class="card-body">
+            <h2 class="h5 mb-0">
+              <i class="bi bi-code-slash text-muted me-2" aria-hidden="true"></i>
+              Initialisation Code
+            </h2>
+            <p class="text-muted mt-2 mb-3">
+              Code snippet for initialising <code>intl-tel-input</code> with your (non-default) options.
+            </p>
+            <div id="playgroundNotes" hidden>
+{{PLAYGROUND_NOTES}}
+            </div>
+            <ul class="nav nav-tabs iti-playground-integration-tabs mb-3" role="tablist" aria-label="Integration">
+              <li class="nav-item" role="presentation">
+                <button type="button" class="nav-link" role="tab" data-integration="vanilla"><span class="d-sm-none">JS</span><span class="d-none d-sm-inline">Vanilla JavaScript</span></button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button type="button" class="nav-link" role="tab" data-integration="react">React</button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button type="button" class="nav-link" role="tab" data-integration="vue">Vue</button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button type="button" class="nav-link" role="tab" data-integration="angular">Angular</button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button type="button" class="nav-link" role="tab" data-integration="svelte">Svelte</button>
+              </li>
+            </ul>
+            <pre class="mb-2 language-html" data-init-html-block hidden><code id="playgroundInitHtml" class="language-html"></code></pre>
+            <pre class="mb-0 language-javascript"><code id="playgroundInitCode" class="language-javascript"></code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+
+
+</div>

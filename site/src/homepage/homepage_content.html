@@ -1,0 +1,212 @@
+<div class="d-flex flex-column align-items-center text-center homepage-content">
+  <div class="section section--homepage-demo demo d-flex flex-column align-items-center">
+    <h1>International<br><span class="keep-together">Telephone Input</span></h1>
+
+    <p class="subtitle text-muted">For entering, formatting, and validating international telephone numbers. Available in <a href="/docs/vanilla-javascript">vanilla JavaScript</a>, or as <a href="/docs/react-component">React</a>, <a href="/docs/vue-component">Vue</a>, <a href="/docs/angular-component">Angular</a>, and <a href="/docs/svelte-component">Svelte</a> components.</p>
+
+    <div class="demo-input-wrap position-relative">
+      <div class="toast-container demo-toast-container">
+        <div id="strictRejectToast" class="toast text-bg-primary" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="4000">
+          <div class="d-flex">
+            <div class="toast-body" id="strictRejectToastBody"></div>
+            <button type="button" class="btn-close btn-close-white me-2" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+        </div>
+      </div>
+
+      <input type="tel" id="phone" class="form-control" title="Enter your phone number" />
+
+      <div class="iti-live-results">Type a number to see the output here</div>
+    </div>
+
+    <a href="/docs/integrations" class="btn btn-primary btn-lg d-inline-flex align-items-center">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        fill="currentColor"
+        class="bi bi-book-half me-2"
+        viewBox="0 0 16 16"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path d="M8.5 2.687c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783" />
+      </svg>
+      Get started
+    </a>
+  </div>
+
+  <div class="section section--twilio">
+    <h2>Sponsored by</h2>
+    <img src="/img/twilio.png" height="100" alt="Twilio logo" />
+    <p>
+      Use
+      <a
+        href="https://www.twilio.com/blog/international-telephone-input-twilio?utm_source=intl-tel-input.com&utm_medium=referral&utm_campaign=intl_tel_input"
+        >Twilio's API to build phone verification, SMS 2FA, appointment reminders,
+        marketing notifications and so much more</a
+      >. We can't wait to see what you build.
+    </p>
+  </div>
+
+  <div class="section section--social-proof">
+    <h2>Trusted by teams worldwide</h2>
+    <div class="social-proof-logos">
+      <img class="logo" src="/img/logos/nike.png" alt="Nike" />
+      <img class="logo" src="/img/logos/dell.svg" alt="Dell" />
+      <img class="logo" src="/img/logos/universal-music.png" alt="Universal Music" />
+      <span class="logo logo-pair">
+        <img src="/img/logos/ubuntu_logo.svg" alt="Ubuntu logo" />
+        <img src="/img/logos/ubuntu_text.svg" alt="Ubuntu text" />
+      </span>
+      <img class="logo" src="/img/logos/forbes.svg" alt="Forbes" />
+      <span class="logo logo-pair">
+        <img src="/img/logos/quickbooks_logo.svg" alt="Intuit QuickBooks logo" />
+        <img src="/img/logos/quickbooks_text.svg" alt="Intuit QuickBooks text" />
+      </span>
+      <img class="logo" src="/img/logos/unicef.png" alt="UNICEF" />
+      <img class="logo" src="/img/logos/ikea.svg" alt="IKEA" />
+    </div>
+  </div>
+
+  <div class="section section--stats">
+    <div class="stats-row">
+      <div class="stat">
+        <span class="stat-number">{{STAT_WEBSITES}}</span>
+        <span class="stat-label">websites</span>
+      </div>
+      <div class="stat">
+        <span class="stat-number">{{STAT_DOWNLOADS}}</span>
+        <span class="stat-label">npm downloads/month</span>
+      </div>
+      <div class="stat">
+        <span class="stat-number">{{STAT_STARS}}</span>
+        <span class="stat-label">GitHub stars</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section section--features">
+    <h2>Features</h2>
+
+    <div class="row g-4 text-start mt-2">
+      <div class="col-12 col-md-6 col-lg-4">
+        <div class="card bg-transparent h-100">
+          <div class="card-body">
+            <div class="d-flex align-items-start gap-3">
+              <i class="bi bi-search fs-5 lh-1 flex-shrink-0 link-icon" aria-hidden="true"></i>
+              <div>
+                <h3 class="h5 mb-2">Fast country picking</h3>
+                <ul class="mb-0">
+                  <li>Search by country name or dial code</li>
+                  <li>Full keyboard navigation</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6 col-lg-4">
+        <div class="card bg-transparent h-100">
+          <div class="card-body">
+            <div class="d-flex align-items-start gap-3">
+              <i class="bi bi-stars fs-5 lh-1 flex-shrink-0 link-icon" aria-hidden="true"></i>
+              <div>
+                <h3 class="h5 mb-2">Smart defaults</h3>
+                <ul class="mb-0">
+                  <li>Auto-detect the user's country</li>
+                  <li>Example placeholders per country</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6 col-lg-4">
+        <div class="card bg-transparent h-100">
+          <div class="card-body">
+            <div class="d-flex align-items-start gap-3">
+              <i class="bi bi-telephone fs-5 lh-1 flex-shrink-0 link-icon" aria-hidden="true"></i>
+              <div>
+                <h3 class="h5 mb-2">Formatting &amp; output</h3>
+                <ul class="mb-0">
+                  <li>Formats the number as the user types</li>
+                  <li>Extract standard E.164 numbers to store</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6 col-lg-4">
+        <div class="card bg-transparent h-100">
+          <div class="card-body">
+            <div class="d-flex align-items-start gap-3">
+              <i class="bi bi-shield-check fs-5 lh-1 flex-shrink-0 link-icon" aria-hidden="true"></i>
+              <div>
+                <h3 class="h5 mb-2">Validation</h3>
+                <ul class="mb-0">
+                  <li>Validate numbers with specific error types</li>
+                  <li>Only allow users to type valid digits and enforce max length</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6 col-lg-4">
+        <div class="card bg-transparent h-100">
+          <div class="card-body">
+            <div class="d-flex align-items-start gap-3">
+              <i class="bi bi-globe fs-5 lh-1 flex-shrink-0 link-icon" aria-hidden="true"></i>
+              <div>
+                <h3 class="h5 mb-2">International &amp; accessible</h3>
+                <ul class="mb-0">
+                  <li>Translated into {{STAT_LOCALES}} languages</li>
+                  <li>Support for RTL and alternative numerals</li>
+                  <li>Screen reader-friendly ARIA markup</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6 col-lg-4">
+        <div class="card bg-transparent h-100">
+          <div class="card-body">
+            <div class="d-flex align-items-start gap-3">
+              <i class="bi bi-sliders fs-5 lh-1 flex-shrink-0 link-icon" aria-hidden="true"></i>
+              <div>
+                <h3 class="h5 mb-2">Developer-friendly</h3>
+                <ul class="mb-0">
+                  <li>Theme it with CSS variables (e.g. dark mode) or utility classes like Tailwind</li>
+                  <li>TypeScript definitions included</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section section--playground-presets">
+    <h2>Playground presets</h2>
+    <p class="text-muted mb-3">
+      Jump straight into the <a href="/playground">Playground</a> with some different configurations.
+    </p>
+
+    <div class="d-flex flex-wrap justify-content-center gap-2 playground-presets">
+{{PLAYGROUND_PRESETS}}
+    </div>
+
+    <p class="text-muted mt-3 mb-0">
+      Or browse the <a href="/docs/integrations">docs</a> and <a href="/examples/vanilla-javascript/validation">examples</a>.
+    </p>
+  </div>
+</div>

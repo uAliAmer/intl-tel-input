@@ -1,0 +1,63 @@
+import React, { useState } from "react";
+import IntlTelInput from "@intl-tel-input/react";
+import "intl-tel-input/styles";
+
+const initialCountryLookup = async () => {
+  const res = await fetch("https://ipapi.co/json");
+  const data = await res.json();
+  return data.country_code;
+};
+
+const App = () => {
+  const [number, setNumber] = useState("");
+  const [isValid, setIsValid] = useState(false);
+  const [errorCode, setErrorCode] = useState(null);
+  const [showValidation, setShowValidation] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  let invalidMsg = null;
+  if (showValidation && !isValid) {
+    // your code here to map the errorCode to a user-facing message
+    invalidMsg = getErrorMessage(number, errorCode);
+  }
+
+  const validMsg = showValidation && isValid && submitted
+    ? `Full number: ${number}`
+    : null;
+
+  const handleChangeNumber = (newNumber) => {
+    setSubmitted(false);
+    setNumber(newNumber);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setShowValidation(true);
+    setSubmitted(true);
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <label htmlFor="phone">Phone number</label>
+      <IntlTelInput
+        onChangeNumber={handleChangeNumber}
+        onChangeValidity={setIsValid}
+        onChangeErrorCode={setErrorCode}
+        initialCountryLookup={initialCountryLookup}
+        loadUtils={() => import("intl-tel-input/utils")}
+        inputProps={{
+          id: "phone",
+          onBlur: () => setShowValidation(true),
+        }}
+      />
+      <button type="submit">Submit</button>
+      {invalidMsg && (
+        <div className="invalid">{invalidMsg}</div>
+      )}
+      {validMsg && (
+        <div className="valid">{validMsg}</div>
+      )}
+    </form>
+  );
+};
+export default App;

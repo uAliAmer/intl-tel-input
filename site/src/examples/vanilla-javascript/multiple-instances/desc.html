@@ -1,0 +1,7 @@
+<p>If you have multiple telephone inputs on the same page, it is safe to initialise the library on each of them individually in your JavaScript. You can use different initialisation options in each case — in the demo below, we specify different <a href="/docs/options#placeholdernumbertype"><code>placeholderNumberType</code></a> values for each of the first two instances. We also specify <a href="/docs/options#onlycountries"><code>onlyCountries</code></a> on the third instance, limiting its country selector to three countries, without affecting the first two.</p>
+
+<p>Play with these options in the <a href="/playground">Playground</a>.</p>
+
+<p>Note: if you use <a href="/docs/options#loadutils"><code>loadUtils</code></a> or <a href="/docs/options#initialcountrylookup"><code>initialCountryLookup</code></a> across multiple instances, those requests are only fired once and the result is shared between them.</p>
+
+<p>Note: the toast shown when input is rejected isn't part of the library — see the <a href="/docs/vanilla-javascript#strict-reject"><code>strict:reject</code></a> event docs for an example of how to wire one up yourself.</p>

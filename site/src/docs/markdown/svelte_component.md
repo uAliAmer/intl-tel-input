@@ -1,0 +1,155 @@
+# Svelte component
+
+A Svelte 5 component for the `intl-tel-input` library. See a live demo on the [Validation](/examples/svelte-component/validation) example page.
+
+## Installation
+
+First, install the package: 
+
+```sh
+npm install @intl-tel-input/svelte
+```
+
+Then, add something like this to your code:
+
+```html
+<script>
+  import IntlTelInput from "@intl-tel-input/svelte";
+  import "intl-tel-input/styles";
+</script>
+
+<IntlTelInput
+  initialCountry="us"
+  loadUtils={() => import("intl-tel-input/utils")}
+/>
+```
+
+> [!NOTE]
+> The utils script (~260KB) is loaded separately. The example above passes a dynamic import to [`loadUtils`](/docs/options#loadutils) — modern bundlers split this into its own lazy-loaded chunk, so it doesn't hit your initial bundle. Alternatively, if `IntlTelInput` is already lazy-loaded in your app, import from `"@intl-tel-input/svelte/with-utils"` to bundle utils directly.
+
+See [Best practices](/docs/best-practices) for general advice on validation, E.164 storage, initial country, and localisation.
+
+## Props
+
+Any of the [initialisation options](#initialisation-options) (like `initialCountry`) can also be passed as a prop.
+
+###### disabled
+Type: `boolean`  
+Default: `false`  
+
+Sets the disabled attribute of both the telephone input and the selected country button. Use this instead of `inputProps.disabled`, as this disables the country button too.
+
+###### initialValue
+Type: `string`  
+Default: `""`  
+
+The initial value to put in the input. This will get auto-formatted on init (according to the `numberDisplayFormat` initialisation option). Only used during initialisation — for ongoing reactive updates, use the `value` prop instead.
+
+###### inputProps
+Type: `object`  
+Default: `{}`  
+
+The props to pass to the input element, e.g. `id`, `class`, `placeholder`, `required`, `onblur`, etc.
+
+> [!NOTE]
+> The following keys are reserved for the component/core library integration and will be ignored: `type`, `value`, `disabled`, `readonly`, `oninput`. Use the component props (`disabled`, `readonly`) and the `onChange...` callback props instead.
+
+###### onChangeCountry
+Type: `(iso2: string) => void`  
+Default: `null`  
+
+A handler to be called when the selected country changes. Receives the new country's iso2 code (e.g. `"gb"`), or `""` if no country is selected.
+
+###### onChangeErrorCode
+Type: `(errorCode: ValidationError | null) => void`  
+Default: `null`  
+
+A handler to be called when the number validation error changes. Receives a [`ValidationError`](/docs/types#validationerror) string, or `null` if the number is valid. See [Show a user-facing error message](/docs/best-practices#show-a-user-facing-error-message) for how to turn the error code into a message. Requires the utils script to be loaded (see above).
+
+###### onChangeNumber
+Type: `(number: string) => void`  
+Default: `null`  
+
+A handler to be called when the number changes. Receives the new number in standardised E.164 format (e.g. `"+447700900123"`), or `""` if the input is empty. Requires the utils script to be loaded (see above).
+
+###### onChangeValidity
+Type: `(isValid: boolean) => void`  
+Default: `null`  
+
+A handler to be called when the number validity changes. Receives the new validity boolean. Requires the utils script to be loaded (see above).
+
+###### onCloseCountrySelector
+Type: `() => void`  
+Default: `null`  
+
+A handler to be called when the country selector closes.
+
+###### onOpenCountrySelector
+Type: `() => void`  
+Default: `null`  
+
+A handler to be called when the country selector opens.
+
+###### onStrictReject
+Type: `(source: "key" | "paste", rejectedInput: string, reason: "invalid" | "max-length") => void`  
+Default: `null`  
+
+A handler to be called when [`strictMode`](/docs/options#strictmode) rejects or modifies input. For most cases, [`strictRejectAnimation`](/docs/options#strictrejectanimation) gives you a built-in shake/flash animation without writing any handler code — only reach for `onStrictReject` when you need custom feedback (e.g. a toast that explains _why_ the input was rejected).
+
+The handler receives three arguments describing what was rejected and why:
+
+- `source`: either `"key"` (a keystroke) or `"paste"` (a clipboard paste).
+- `rejectedInput`: the raw string that was rejected or stripped — for `"key"` this is the single character pressed, and for `"paste"` it's the full pasted text.
+- `reason`: either `"invalid"` (the input contained a disallowed character) or `"max-length"` (accepting the input would have exceeded the maximum valid length for the selected country).
+
+Here is an example that selects a user-facing message based on these args:
+
+```js
+if (reason === "max-length") msg = "Maximum length reached for this country";
+else if (source === "paste") msg = "Stripped invalid characters from pasted text";
+else msg = `Character not allowed: "${rejectedInput}"`;
+```
+
+###### readonly
+Type: `boolean`  
+Default: `false`  
+
+Sets the readonly attribute of the telephone input and disables the selected country button. Use this instead of `inputProps.readonly`, as this disables the country button too.
+
+###### usePreciseValidation
+Type: `boolean`  
+Default: `false`  
+
+By default, we use `isValidNumber` for validation, but if you'd rather use `isValidNumberPrecise`, you can set this to `true`.
+
+###### value
+Type: `string`  
+Default: `undefined`  
+
+Optional controlled value. If provided, the component becomes controlled — whenever this prop changes, the input is updated via `setNumber` (skipped while the input is focused, to avoid disrupting typing). Leave it `undefined` to keep the component uncontrolled and use `initialValue` for the initial value instead.
+
+> [!IMPORTANT]
+> When using `value`, you should also use `onChangeNumber` to keep the value in sync with user input, otherwise programmatic updates (e.g. clearing the input) may not work as expected.
+
+
+## Initialisation options
+
+All of the core library's initialisation options are supported as individual Svelte component props using the same option name. There are dozens of options — country selector, formatting, validation, placeholders, localisation, and more — see the full list on the [Initialisation options](/docs/options) page, or try them interactively in the [playground](/playground). For example:
+
+```js
+<IntlTelInput initialCountry="us" />
+```
+
+> [!NOTE]
+> If you're migrating from an older version, the previous `initOptions={{ initialCountry: "us" }}` style is no longer supported — pass each option as its own prop instead.
+
+> [!NOTE]
+> These props are read once at init — changing them later has no effect. For runtime changes, see [Accessing instance methods](#accessing-instance-methods) below (e.g. `getInstance().setSelectedCountry("gb")`).
+
+## Accessing instance methods
+
+You can access all of the core library's [instance methods](/docs/methods#instance-methods) (`setNumber`, `setSelectedCountry`, `setPlaceholderNumberType`, etc.) by passing a ref into the IntlTelInput component (using `bind:this`), and then calling the `getInstance()` method, e.g. `ref.getInstance().setSelectedCountry(...);`. See the [Set Country demo](https://github.com/jackocnr/intl-tel-input/blob/master/packages/svelte/demo/set-country/App.svelte) for a full example. You can also access the input DOM element via: `ref.getInput()`.
+
+## Accessing static methods
+
+You can access all of the core library's [static methods](/docs/methods#static-methods) by importing `intlTelInput` from the same file as the Svelte component, e.g. `import { intlTelInput } from "@intl-tel-input/svelte"` (note the lower case "i" in "intlTelInput"). You can then use this as you would with the core library directly, e.g. `intlTelInput.getAllCountries()` etc.

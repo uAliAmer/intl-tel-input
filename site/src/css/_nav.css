@@ -1,0 +1,454 @@
+/* ===========================
+   HEADER NAV
+   The whole header, inc branding, hamburger, search, and dropdowns.
+   =========================== */
+
+.iti-header-nav {
+  padding: 0.75rem 0;
+  background-image: linear-gradient(rgb(var(--header-bg-color-rgb) / 1), rgb(var(--header-bg-color-rgb) / 0.95));
+  box-shadow: 0 .5rem 1rem #00000026;
+
+  .navbar-toggler {
+    padding: 0;
+    border: 0;
+  }
+
+  /* Header dropdown toggle: CSS chevron */
+  .dropdown-toggle::after {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin: 0px 0 3px 4px;
+    content: "";
+    border: solid currentColor;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+
+  /* cute spinny logo animation on hover */
+  @media (hover: hover) and (pointer: fine) {
+    .iti-logo {
+      transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .navbar-brand:hover .iti-logo {
+      transform: rotate(360deg) scale(1.1);
+    }
+  }
+}
+
+@media (min-width: 1030px) {
+  .iti-header-nav-row {
+    position: relative;
+  }
+
+  /* Center search on the page (not within remaining flex space) */
+  .iti-header-nav-search {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* Bootstrap's navbar-expand-lg / d-lg-* / offcanvas-lg utilities switch the
+   header to desktop layout at 992px, but at that width the centered search
+   sits too close to the right-aligned nav links. Keep the mobile layout
+   between 992px and our custom 1030px breakpoint by re-asserting mobile-mode
+   rules for the elements those utilities control. */
+@media (min-width: 992px) and (max-width: 1029.98px) {
+  /* Hide the desktop nav menu container (search + nav links) */
+  .iti-header-nav-menu.offcanvas-lg {
+    display: none !important;
+  }
+  /* Show the hamburger (navbar-expand-lg hides .navbar-toggler at lg+) */
+  .iti-header-nav .navbar-toggler {
+    display: block;
+  }
+  /* Show the mobile search icon (its d-lg-none hides it at lg+) */
+  .iti-header-nav-icon-btn.d-lg-none {
+    display: inline-block !important;
+  }
+}
+
+.iti-header-nav {
+  /* ALGOLIA SEARCH INPUT (actually a button) */
+  .DocSearch-Button {
+    width: 260px;
+    --docsearch-search-button-background: rgba(0, 0, 0, .1);
+    --docsearch-search-button-text-color: rgba(255, 255, 255, .65);
+    border: 1px solid rgba(255, 255, 255, .4);
+    border-radius: var(--bs-border-radius);
+
+    &:hover {
+      --docsearch-search-button-text-color: rgba(255, 255, 255, 1);
+      border-color: rgba(255, 255, 255, 1);
+    }
+  }
+  .DocSearch-Button-Keys {
+      min-width: 0;
+      padding: .125rem .25rem;
+      background: rgba(0, 0, 0, .25);
+      border-radius: .25rem
+  }
+  .DocSearch-Button-Key {
+      color: rgba(255, 255, 255, .65);
+      width: auto;
+      height: 1.25rem;
+      padding-right: .125rem;
+      padding-left: .125rem;
+      background: none;
+      border: none;
+      margin: 0 !important;
+  }
+  /* disable DocSearch's "pressed" styles */
+  .DocSearch-Button-Key--pressed {
+    box-shadow: none !important;
+    transform: none !important;
+  }
+}
+/* mobile search icon button in header */
+.iti-header-nav-icon-btn {
+  padding: 0.25rem;
+  border: 0;
+  background: transparent;
+  line-height: 1;
+
+  svg {
+    width: 20px;
+  }
+}
+.iti-header-nav-search {
+  min-width: 0;
+}
+/* ALGOLIA SEARCH MODAL */
+.DocSearch-Container {
+  /* above Bootstrap navbar (z-1020) but below mobile nav (z-1055) */
+  z-index: 1051;
+}
+
+.iti-header-nav-menu {
+  .nav-link {
+    color: white;
+    /* fix: unselected playground link not looking centered (to make space for bold active state) */
+    text-align: center;
+
+    /* Prevent nav items shifting when toggling font-weight by reserving space
+       for the bold version of the label (used on the active state). */
+    &.iti-header-nav-link-no-shift > span {
+      display: inline-block;
+    }
+    &.iti-header-nav-link-no-shift > span::after {
+      content: attr(data-text);
+      display: block;
+      height: 0;
+      overflow: hidden;
+      visibility: hidden;
+    }
+    &.iti-header-nav-link-no-shift > span::after,
+    &.active {
+      font-weight: 700;
+    }
+  }
+
+  .nav-link--github {
+    height: 100%; /* required for vertical alignment */
+  }
+
+  @media (min-width: 1030px) {
+    .navbar-nav {
+      .nav-link {
+        opacity: 0.85;
+      }
+      .nav-link:hover,
+      .nav-link:focus,
+      .nav-link.active,
+      .show > .nav-link {
+        opacity: 1;
+      }
+    }
+  }
+  /* Header docs dropdown: active item uses header green */
+  .dropdown-item.active,
+  .dropdown-item:active {
+    background-color: rgb(var(--header-bg-color-rgb) / 0.5);
+    color: white;
+  }
+
+  /* Header nav dropdown: open on hover (desktop) + keyboard focus */
+  @media (hover: hover) and (pointer: fine) {
+    .dropdown:hover > .dropdown-menu {
+      display: block;
+      /* Match Bootstrap's positioning styles that normally apply when JS adds data-bs-popper */
+      top: 100%;
+      left: 0;
+    }
+  }
+}
+
+.iti-header-nav {
+  /* Header dropdown: nested item border (slightly lighter than the sidebar nav
+     variant, to distinguish from the dropdown's own border) */
+  .iti-nav-item--nested {
+    border-left: 1px solid rgba(var(--bs-body-color-rgb), 0.07);
+    margin-left: 1.05rem;
+  }
+  .iti-nav-item--nested > .dropdown-item {
+    padding-left: 0.85rem;
+  }
+
+  /* Header dropdown: section heading (button reset, used as flyout toggle) */
+  .iti-flyout-toggle {
+    background: none;
+    border: 0;
+    text-align: left;
+    white-space: nowrap;
+  }
+  .iti-flyout-toggle:hover,
+  .iti-flyout-section:hover > .iti-flyout-toggle,
+  .iti-flyout-section:focus-within > .iti-flyout-toggle {
+    color: rgba(var(--bs-body-color-rgb), 0.9);
+  }
+  .iti-nav-section-heading {
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: rgba(var(--bs-body-color-rgb), 0.65);
+  }
+
+  /* Cascading fly-out submenu: section header in the parent dropdown, items
+     fly out to the right on hover (or click on touch). Bootstrap doesn't
+     support nested dropdowns natively, so we drive this with CSS hover +
+     focus-within and add a click handler for touch fallback. */
+  .iti-flyout-section {
+    position: relative;
+  }
+  .iti-flyout-menu {
+    position: absolute;
+    top: 0;
+    right: 100%;
+    margin: 0 !important;
+    display: none;
+  }
+  /* Bridge the visual gap so the cursor doesn't close the flyout when moving
+     between heading and items at a slight diagonal */
+  .iti-flyout-menu::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: -8px;
+    width: 8px;
+    height: 100%;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .iti-flyout-section:hover > .iti-flyout-menu,
+    .iti-flyout-section:focus-within > .iti-flyout-menu {
+      display: block;
+    }
+  }
+  /* Touch fallback: JS toggles .show on click */
+  .iti-flyout-menu.show {
+    display: block;
+  }
+  /* Right-pointing chevron variant: sits at the end of section headings */
+  .iti-nav-chevron--right {
+    transform: rotate(-45deg);
+    margin-bottom: 0;
+  }
+}
+
+
+/* =========================
+   MOBILE NAV
+   ========================= */
+
+.iti-mobile-nav {
+  .offcanvas-title a {
+    color: var(--bs-body-color);
+    text-decoration: none;
+  }
+
+  /* Remove hover styles (prevents iOS/Android sticky :hover states) */
+  .nav-pills .nav-link:not(.active):hover {
+    background-color: transparent;
+  }
+
+  .nav--primary-links > .nav-item > .nav-link {
+    font-weight: 700;
+    font-size: 1.05rem;
+    padding-top: 0.65rem;
+    padding-bottom: 0.65rem;
+  }
+
+  .iti-nav-submenu .nav-link {
+    font-size: 0.95rem;
+    font-weight: 500;
+    opacity: 0.95;
+  }
+
+  /* Mobile nav icon + label spacing: slightly wider than Bootstrap gap-2 */
+  .d-flex.align-items-center.gap-2 {
+    gap: calc(0.5rem + 2px) !important;
+  }
+
+  /* Top-level toggle (Docs / Examples buttons) — button reset */
+  .iti-nav-toggle {
+    border: 0;
+    background: none;
+  }
+  .iti-nav-toggle[aria-expanded="true"] .iti-nav-chevron {
+    transform: rotate(225deg);
+    margin-top: 8px;
+  }
+
+  /* Collapsible section toggle (button reset + chevron rotation) */
+  .iti-nav-section-toggle {
+    background: none;
+    border: 0;
+    text-align: left;
+  }
+  .iti-nav-section-toggle:hover {
+    color: rgba(var(--bs-body-color-rgb), 0.9);
+  }
+  .iti-nav-section-toggle[aria-expanded="true"] .iti-nav-chevron {
+    transform: rotate(225deg);
+    margin-top: 8px;
+  }
+  .iti-nav-section {
+    margin-top: 0.2rem;
+  }
+  .iti-nav-section + .iti-nav-section {
+    margin-top: 0.7rem;
+  }
+}
+
+
+/* =========================
+   CONTEXT NAV
+   ========================= */
+
+.iti-context-nav {
+  /* Bridge the gap-1 spacing between consecutive nested items in the nav */
+  .iti-nav-item--nested + .iti-nav-item--nested::before {
+    content: "";
+    position: absolute;
+    left: -1px;
+    top: -0.25rem;
+    width: 1px;
+    height: 0.25rem;
+    background: rgba(var(--bs-body-color-rgb), 0.15);
+  }
+
+  /* Collapsible section toggle (button reset + chevron rotation) */
+  .iti-nav-section-toggle {
+    background: none;
+    border: 0;
+    text-align: left;
+  }
+  .iti-nav-section-toggle:hover {
+    color: rgba(var(--bs-body-color-rgb), 0.9);
+  }
+  .iti-nav-section-toggle[aria-expanded="true"] .iti-nav-chevron {
+    transform: rotate(225deg);
+    margin-top: 8px;
+  }
+  .iti-nav-sections {
+    gap: 0;
+  }
+  .iti-nav-section + .iti-nav-section {
+    margin-top: 0.75rem;
+  }
+}
+
+
+/* =========================
+   SHARED — rules used by 2+ navs (do not fork into per-nav copies)
+   ========================= */
+
+/* Bootstrap override: remove the gap between any popper-positioned dropdown
+   menu and its toggle (applies to header nav dropdowns AND the playground
+   multidropdown widget) */
+.dropdown-menu[data-bs-popper] {
+  margin-top: 0 !important;
+}
+
+/* Globe icon next to website name: header + mobile nav */
+.iti-logo {
+  margin-right: 10px;
+}
+
+/* Version badge next to header brand */
+.iti-header-nav-version {
+  margin-top: 1px;
+  margin-left: 0.5rem;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.25;
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--bs-border-radius);
+  text-decoration: none;
+}
+.iti-header-nav-version:hover,
+.iti-header-nav-version:focus {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+/* Chevron used by all three navs (header dropdown, mobile, context) */
+.iti-nav-chevron {
+  margin: 0px 0 3px 6px;
+  width: 8px;
+  height: 8px;
+  display: inline-block;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  opacity: 0.85;
+}
+
+/* Sidebar navs (mobile + context) share visual language: vertical link lists */
+.iti-context-nav .nav-link,
+.iti-mobile-nav .nav-link {
+  color: var(--bs-body-color);
+}
+.nav-pills {
+  .nav-link.active {
+    background-color: rgb(var(--header-bg-color-rgb) / 0.5);
+  }
+  .nav-link:not(.active):hover {
+    background-color: rgb(var(--header-bg-color-rgb) / 0.5);
+  }
+}
+
+/* Nested nav items: subtle left border ties the group together visually */
+.iti-context-nav .iti-nav-item--nested,
+.iti-mobile-nav .iti-nav-item--nested {
+  position: relative;
+  border-left: 1px solid rgba(var(--bs-body-color-rgb), 0.15);
+  margin-left: 1.1rem;
+}
+
+/* Non-link section headings inside the nav (group labels for examples-by-integration) */
+.iti-context-nav .iti-nav-section-heading,
+.iti-mobile-nav .iti-nav-section-heading {
+  margin-top: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(var(--bs-body-color-rgb), 0.65);
+}
+.iti-context-nav .iti-nav-section-heading:first-child,
+.iti-mobile-nav .iti-nav-section-heading:first-child {
+  margin-top: 0;
+}
+
+/* Keep submenu items stacked vertically during Bootstrap's collapse animation
+   (without this, .nav's flex-wrap causes items to flow horizontally mid-animation) */
+.iti-context-nav .iti-nav-submenu,
+.iti-mobile-nav .iti-nav-submenu {
+  flex-wrap: nowrap;
+}

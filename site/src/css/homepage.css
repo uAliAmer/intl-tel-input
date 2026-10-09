@@ -1,0 +1,253 @@
+.iti-page--homepage .iti-live-results {
+  margin: 10px 0 20px;
+}
+
+body.iti-page--homepage {
+  background-image: linear-gradient(
+      182deg,
+      rgba(var(--bs-body-bg-rgb), 0.012),
+      rgba(var(--bs-body-bg-rgb), 1) 87%
+    ),
+    radial-gradient(
+      ellipse at 12% 18%,
+      rgba(65, 133, 234, 0.32),
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse at 88% 14%,
+      rgba(111, 167, 104, 0.45),
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse at 90% 56%,
+      rgba(128, 63, 240, 0.42),
+      transparent 52%
+    ),
+    radial-gradient(
+      ellipse at 10% 60%,
+      rgba(224, 76, 135, 0.42),
+      transparent 52%
+    );
+}
+.homepage-content {
+  margin-top: 60px;
+  margin-left: auto;
+  margin-right: auto;
+
+  .section--homepage-demo,
+  .section--twilio {
+    max-width: 580px;
+  }
+
+  h1 {
+    font-size: 41px;
+    font-weight: 600;
+  }
+
+  /* allow this part of title to wrap on small screens, but keep together on larger screens */
+  @media (min-width: 420px) {
+    h1 .keep-together {
+      white-space: nowrap;
+    }
+  }
+
+  .text-muted a {
+    color: inherit;
+    /* keep the same muted hue, but remove Bootstrap's alpha transparency on interaction */
+    &:hover {
+      color: rgb(var(--bs-secondary-color-rgb));
+    }
+  }
+
+  .section {
+    margin-bottom: 60px;
+  }
+
+  /* remove margin on last section */
+  .section:last-child {
+    margin-bottom: 0;
+  }
+
+  @media (min-width: 992px) {
+    margin-top: 100px;
+
+    .section--homepage-demo,
+    .section--twilio {
+      max-width: 700px;
+    }
+
+    h1 {
+      font-size: 58px;
+    }
+
+    p.subtitle {
+      font-size: 23px;
+    }
+  }
+
+  .section--homepage-demo {
+    margin-top: 10px;
+
+    /* homepage: make the demo input width match the live results box */
+    .iti,
+    input[type="tel"] {
+      width: 100%;
+      text-align: left; /* required because we have text-align:center on this section */
+    }
+
+    /* to match the other sections, which have a <p> at the bottom with this margin */
+    .btn-primary {
+      margin-bottom: 16px;
+    }
+  }
+
+  .section--twilio {
+    h2 {
+      margin-bottom: 0;
+    }
+  }
+
+  .section--social-proof {
+    .social-proof-logos {
+      margin-top: 24px;
+      max-width: 900px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 24px 32px;
+
+      .logo {
+        height: 40px;
+        width: auto;
+        opacity: 0.55;
+        filter: grayscale(100%);
+        transition: opacity 0.2s;
+
+        &:hover {
+          opacity: 0.8;
+        }
+      }
+
+      /* hide last 3 logos on mobile */
+      .logo:nth-last-child(-n+3) {
+        display: none;
+
+        @media (min-width: 768px) {
+          display: inline-flex;
+        }
+      }
+
+      .logo-pair {
+        display: inline-flex;
+        align-items: center;
+
+        img {
+          height: 100%;
+          width: auto;
+        }
+      }
+
+      /* The following AI generated code attempts to approximate var(--bs-body-color) (#212529 light / #dee2e6 dark) via filters */
+
+      /* nike, unicef, forbes, ubuntu_text, and quickbooks_text logos are black on transparent */
+      img[src*="nike.png"],
+      img[src*="unicef.png"],
+      img[src*="forbes"],
+      img[src*="ubuntu_text"],
+      img[src*="quickbooks_text"] {
+        filter: invert(0.13);
+
+        [data-bs-theme="dark"] & {
+          filter: invert(0.87);
+        }
+      }
+
+      /* dell logo is blue on transparent, so use brightness(0) to make it black before inverting */
+      img[src*="dell"] {
+        filter: brightness(0) invert(0.13);
+
+        [data-bs-theme="dark"] & {
+          filter: brightness(0) invert(0.87);
+        }
+      }
+
+      /* universal music logo is white on transparent */
+      img[src*="universal-music"] {
+        filter: invert(0.87);
+
+        [data-bs-theme="dark"] & {
+          filter: invert(0.13);
+        }
+      }
+    }
+  }
+
+  @media (min-width: 992px) {
+    .section--social-proof .social-proof-logos .logo {
+      height: 48px;
+    }
+  }
+
+  .section--stats {
+    .stats-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 24px 48px;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .stat-number {
+      font-size: 36px;
+      font-weight: 700;
+      color: rgb(var(--bs-link-color-rgb));
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: var(--bs-secondary-color);
+      margin-top: 4px;
+    }
+  }
+
+  @media (min-width: 992px) {
+    .section--stats {
+      .stat-number {
+        font-size: 48px;
+      }
+
+      .stat-label {
+        font-size: 16px;
+      }
+    }
+  }
+
+  /* icons that should match link colour */
+  .section--features {
+    .link-icon {
+      color: rgb(var(--bs-link-color-rgb)) !important;
+    }
+  }
+  /* there is a br in the middle of the playground preset links: ignore it on mobile, show it on larger screens to break the links into two rows */
+  @media (min-width: 550px) {
+    .playground-presets {
+      max-width: 550px;
+    }
+  }
+  /* Make the playground preset outline buttons use the link colour */
+  .playground-presets .btn-outline-primary {
+    color: rgb(var(--bs-link-color-rgb));
+    border-color: rgb(var(--bs-link-color-rgb));
+  }
+  .playground-presets .btn-outline-primary:hover,
+  .playground-presets .btn-outline-primary:focus {
+    background-color: rgba(var(--bs-link-color-rgb), 0.1);
+    border-color: rgb(var(--bs-link-color-rgb));
+  }
+}

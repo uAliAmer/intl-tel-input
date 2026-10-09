@@ -1,0 +1,66 @@
+{
+  "name": "@intl-tel-input/svelte",
+  "version": "29.5.3",
+  "description": "A Svelte component for intl-tel-input, for entering, formatting, and validating international telephone numbers",
+  "type": "module",
+  "license": "MIT",
+  "author": "Jack O'Connor (http://jackocnr.com)",
+  "types": "./src/IntlTelInput.svelte.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/IntlTelInput.svelte.d.ts",
+      "svelte": "./src/IntlTelInput.svelte",
+      "import": "./src/IntlTelInput.svelte"
+    },
+    "./with-utils": {
+      "types": "./src/IntlTelInput.svelte.d.ts",
+      "svelte": "./src/IntlTelInputWithUtils.svelte",
+      "import": "./src/IntlTelInputWithUtils.svelte"
+    }
+  },
+  "files": [
+    "src/*",
+    "LICENSE",
+    "package.json",
+    "README.md"
+  ],
+  "dependencies": {
+    "intl-tel-input": "^29.5.3"
+  },
+  "peerDependencies": {
+    "svelte": "^5.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jackocnr/intl-tel-input.git",
+    "directory": "packages/svelte"
+  },
+  "homepage": "https://intl-tel-input.com/docs/svelte-component",
+  "bugs": "https://github.com/jackocnr/intl-tel-input/issues",
+  "keywords": [
+    "intl-tel-input",
+    "svelte",
+    "svelte5",
+    "runes",
+    "component",
+    "international",
+    "country",
+    "country-picker",
+    "telephone",
+    "phone",
+    "phone-number",
+    "tel",
+    "mobile",
+    "dial-code",
+    "input",
+    "flag",
+    "dropdown",
+    "validation",
+    "libphonenumber",
+    "formatting",
+    "typescript"
+  ]
+}

@@ -1,0 +1,28 @@
+<!-- Bootstrap UMD bundle (vendored from npm via site/scripts/copy-assets.js) -->
+<script src="<%= cacheBust('/js/bootstrap.bundle.min.js') %>"></script>
+
+<!-- Highlight.js -->
+<script src="<%= cacheBust('/js/highlight.min.js') %>"></script>
+<script src="<%= cacheBust('/js/hljs-copy-button.js') %>"></script>
+<script>hljs.highlightAll();</script>
+
+<!-- DocSearch -->
+<script src="https://cdn.jsdelivr.net/npm/@docsearch/js@4"></script>
+<script>
+  docsearch({
+    container: "#docsearch",
+    appId: "30NQZ1MMUC",
+    indexName: "ITI Site",
+    apiKey: "36bc251934d6bbefeb56f187686f4810",
+  });
+
+  // Mobile search icon → trigger Algolia DocSearch
+  const algoliaButton = document.querySelector<HTMLButtonElement>("#docsearch button");
+  const mobileSearchButton = document.getElementById("itiSearchButtonMobile");
+  if (algoliaButton && mobileSearchButton) {
+    mobileSearchButton.addEventListener("click", () => algoliaButton.click());
+  }
+</script>
+
+<!-- Site chrome (nav flyouts, feedback button, TOC scroll-spy) -->
+<script src="<%= cacheBust('/js/site.js') %>"></script>

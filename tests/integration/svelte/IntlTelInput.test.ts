@@ -1,0 +1,255 @@
+import { render, screen, waitFor, cleanup } from "@testing-library/svelte";
+import { afterEach, describe, expect, test, vi } from "vitest";
+import IntlTelInput, { intlTelInput } from "../../../packages/svelte/src/IntlTelInputWithUtils.svelte";
+
+const getTelInput = () => screen.getByRole("textbox") as HTMLInputElement;
+
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
+
+describe("Svelte IntlTelInput wrapper", () => {
+  test("renders a tel input inside the iti container", () => {
+    render(IntlTelInput);
+    const input = getTelInput();
+    expect(input.getAttribute("type")).toBe("tel");
+    expect(input.parentElement?.classList.contains("iti")).toBe(true);
+  });
+
+  test("exposes the underlying iti instance and input via getInstance/getInput", () => {
+    const { component } = render(IntlTelInput);
+    const instance = (component as unknown as { getInstance: () => { isActive: () => boolean } | undefined }).getInstance();
+    const input = (component as unknown as { getInput: () => HTMLInputElement | undefined }).getInput();
+    expect(instance).toBeTruthy();
+    expect(instance!.isActive()).toBe(true);
+    expect(input).toBe(getTelInput());
+  });
+
+  test("destroys the iti instance on unmount", () => {
+    const { unmount, container } = render(IntlTelInput);
+    const input = container.querySelector("input") as HTMLInputElement;
+    expect(input.parentElement?.classList.contains("iti")).toBe(true);
+    unmount();
+    expect(document.body.contains(input)).toBe(false);
+  });
+
+  test("getSelectedCountry inside an onChangeNumber handler returns the newly-typed country", async () => {
+    //* Listener-order regression: if the wrapper's input listener runs before the core updates the country,
+    //* the user's onChangeNumber handler sees stale country data when they look it up via getInstance().getSelectedCountry().
+    //* See https://github.com/jackocnr/intl-tel-input/issues/2171#issuecomment-4565159354
+    const seenCountriesInHandler: string[] = [];
+    //* Holder object so the handler can close over a stable reference and read `component` once render() returns.
+    const componentRef: { current?: { getInstance: () => { getSelectedCountry: () => { iso2: string } | null } | undefined } } = {};
+    const onChangeNumber = vi.fn(() => {
+      const iso2 = componentRef.current?.getInstance()?.getSelectedCountry()?.iso2 ?? "";
+      seenCountriesInHandler.push(iso2);
+    });
+    const { component } = render(IntlTelInput, {
+      initialCountry: "dk",
+      onChangeNumber,
+    });
+    componentRef.current = component as unknown as typeof componentRef.current;
+
+    const input = getTelInput();
+    //* Replace previous "+45..." with "+47..." in one input event (simulates pasting/selecting-all-then-typing the new prefix).
+    input.value = "+4712345678";
+    input.dispatchEvent(new Event("input"));
+
+    await waitFor(() => expect(onChangeNumber).toHaveBeenCalled());
+    expect(seenCountriesInHandler.at(-1)).toBe("no");
+  });
+
+  test("updating value prop fires onChangeNumber / onChangeCountry", async () => {
+    const onChangeNumber = vi.fn();
+    const onChangeCountry = vi.fn();
+    const { rerender } = render(IntlTelInput, {
+      value: "",
+      onChangeNumber,
+      onChangeCountry,
+    });
+
+    await rerender({
+      value: "+447733123456",
+      onChangeNumber,
+      onChangeCountry,
+    });
+
+    await waitFor(() => {
+      expect(onChangeNumber).toHaveBeenCalledWith("+447733123456");
+      expect(onChangeCountry).toHaveBeenCalledWith("gb");
+    });
+  });
+
+  test("initialValue prop sets the initial number on mount", async () => {
+    const { component } = render(IntlTelInput, { initialValue: "+447733123456" });
+    const getInstance = (component as unknown as {
+      getInstance: () => { getNumber: () => string; getSelectedCountry: () => { iso2: string } } | undefined;
+    }).getInstance;
+    await waitFor(() => {
+      expect(getInstance()?.getNumber()).toBe("+447733123456");
+      expect(getInstance()?.getSelectedCountry().iso2).toBe("gb");
+    });
+  });
+
+  test("setting value then resetting to empty clears the input", async () => {
+    const onChangeNumber = vi.fn();
+    const { rerender } = render(IntlTelInput, {
+      value: "+447733123456",
+      onChangeNumber,
+    });
+    await waitFor(() => {
+      expect(getTelInput().value).not.toBe("");
+      expect(onChangeNumber).toHaveBeenCalledWith("+447733123456");
+    });
+    await rerender({ value: "", onChangeNumber });
+    await waitFor(() => {
+      expect(getTelInput().value).toBe("");
+      expect(onChangeNumber).toHaveBeenLastCalledWith("");
+    });
+  });
+
+  test("fires onChangeValidity and onChangeErrorCode when number becomes valid", async () => {
+    const onChangeValidity = vi.fn();
+    const onChangeErrorCode = vi.fn();
+    const { rerender } = render(IntlTelInput, {
+      value: "",
+      onChangeValidity,
+      onChangeErrorCode,
+    });
+
+    await rerender({
+      value: "+447733123456",
+      onChangeValidity,
+      onChangeErrorCode,
+    });
+
+    await waitFor(() => {
+      expect(onChangeValidity).toHaveBeenCalledWith(true);
+      expect(onChangeErrorCode).toHaveBeenCalledWith(null);
+    });
+  });
+
+  test("disabled prop toggles the input disabled state", async () => {
+    const { rerender } = render(IntlTelInput, { disabled: true });
+    await waitFor(() => expect(getTelInput().disabled).toBe(true));
+    await rerender({ disabled: false });
+    await waitFor(() => expect(getTelInput().disabled).toBe(false));
+  });
+
+  test("readonly prop toggles the input readOnly state", async () => {
+    const { rerender } = render(IntlTelInput, { readonly: true });
+    await waitFor(() => expect(getTelInput().readOnly).toBe(true));
+    await rerender({ readonly: false });
+    await waitFor(() => expect(getTelInput().readOnly).toBe(false));
+  });
+
+  test("initOptions are passed through to the library", async () => {
+    render(IntlTelInput, { initialCountry: "gb" });
+    await waitFor(() => {
+      expect(document.body.innerHTML.includes("iti__gb")).toBe(true);
+    });
+  });
+
+  test("re-exports intlTelInput so users can access globals", () => {
+    expect(typeof intlTelInput).toBe("function");
+    expect(intlTelInput.utils).toBeTruthy();
+  });
+
+  test("applies safe inputProps (class, placeholder) to the input", () => {
+    render(IntlTelInput, {
+      inputProps: { class: "custom", placeholder: "enter number" },
+    });
+    const input = getTelInput();
+    expect(input.classList.contains("custom")).toBe(true);
+    expect(input.getAttribute("placeholder")).toBe("enter number");
+  });
+
+  test("passes classNames through to the library", () => {
+    render(IntlTelInput, {
+      // DROPDOWN so the country list is rendered inline (fullscreen only attaches it on open)
+      countrySelectorMode: "DROPDOWN",
+      classNames: { selectedCountry: "custom-button", countryList: "custom-list" },
+    });
+    expect(document.querySelector(".iti__selected-country")!.classList).toContain("custom-button");
+    expect(document.querySelector(".iti__country-list")!.classList).toContain("custom-list");
+  });
+
+  test("classNames.input and inputProps.class are both applied to the input", () => {
+    render(IntlTelInput, {
+      classNames: { input: "from-classnames" },
+      inputProps: { class: "from-inputprops" },
+    });
+    const input = getTelInput();
+    expect(input.classList.contains("from-inputprops")).toBe(true);
+    expect(input.classList.contains("from-classnames")).toBe(true);
+    expect(input.classList.contains("iti__tel-input")).toBe(true);
+  });
+
+  test("changing inputProps.class replaces the old class rather than accumulating", async () => {
+    const { rerender } = render(IntlTelInput, {
+      classNames: { input: "from-classnames" },
+      inputProps: { class: "border-green" },
+    });
+    const input = getTelInput();
+    expect(input.classList.contains("border-green")).toBe(true);
+
+    await rerender({
+      classNames: { input: "from-classnames" },
+      inputProps: { class: "border-red" },
+    });
+
+    expect(input.classList.contains("border-red")).toBe(true);
+    expect(input.classList.contains("border-green")).toBe(false);
+    // the library's own classes survive the re-render
+    expect(input.classList.contains("iti__tel-input")).toBe(true);
+    expect(input.classList.contains("from-classnames")).toBe(true);
+  });
+
+  test("an undefined inputProps.class does not add a stray class", () => {
+    render(IntlTelInput, { inputProps: { class: undefined } });
+    const input = getTelInput();
+    expect(input.classList.contains("undefined")).toBe(false);
+    expect(input.classList.contains("iti__tel-input")).toBe(true);
+  });
+
+  test("getInstance returns undefined after unmount", () => {
+    const { unmount, component } = render(IntlTelInput);
+    const instance = (component as unknown as { getInstance: () => { isActive: () => boolean } | undefined }).getInstance();
+    expect(instance?.isActive()).toBe(true);
+    unmount();
+    // after unmount, the instance has been destroyed
+    expect(instance?.isActive()).toBe(false);
+  });
+
+  test("rapid value changes update number without errors", async () => {
+    const onChangeNumber = vi.fn();
+    const { rerender } = render(IntlTelInput, { value: "", onChangeNumber });
+    await rerender({ value: "+33123456789", onChangeNumber });
+    await rerender({ value: "+447733123456", onChangeNumber });
+    await rerender({ value: "+4930901820", onChangeNumber });
+    await waitFor(() => {
+      expect(onChangeNumber).toHaveBeenCalledWith("+4930901820");
+    });
+  });
+
+  test("warns and ignores unsafe inputProps (type, value, disabled, readonly, oninput)", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const ignoredOnInput = vi.fn();
+    render(IntlTelInput, {
+      inputProps: {
+        type: "text",
+        value: "nope",
+        disabled: true,
+        readonly: true,
+        oninput: ignoredOnInput,
+      },
+    });
+    const input = getTelInput();
+    expect(input.getAttribute("type")).toBe("tel");
+    expect(input.value).not.toBe("nope");
+    expect(input.disabled).toBe(false);
+    expect(input.readOnly).toBe(false);
+    expect(warn).toHaveBeenCalledTimes(5);
+  });
+});

@@ -1,0 +1,9 @@
+<p>The Angular component plugs into <code>ReactiveFormsModule</code> as a custom form control and ships with a built-in validator that checks phone numbers by length (sufficient for most use cases — enable <a href="/docs/angular-component#useprecisevalidation"><code>usePreciseValidation</code></a> for stricter matching).</p>
+
+<p>Validation respects the <a href="/docs/options#allowednumbertypes"><code>allowedNumberTypes</code></a> option, which is set to <code>["MOBILE", "FIXED_LINE"]</code> by default, meaning it will only consider those types of numbers as valid.</p>
+
+<p>When a number fails validation, the form control's <code>errors["invalidPhone"]</code> contains the error code, which you can then map to your own custom error message — see <a href="/docs/best-practices#show-a-user-facing-error-message">Show a user-facing error message</a>.</p>
+
+<p>Note: the red/green styling and warning/success icons are not part of the component — in this example they come from <a rel="noopener" href="https://getbootstrap.com/docs/5.3/forms/validation/">Bootstrap form validation</a>.</p>
+
+<p>Note: the toast shown when input is rejected isn't part of the library — see the <a href="/docs/angular-component#strictreject"><code>strictReject</code></a> event docs for an example of how to wire one up yourself.</p>

@@ -1,0 +1,219 @@
+# Methods
+
+This page lists the core library's public API methods.
+
+## Instance Methods
+
+These methods are called on the core library instance. The examples below all use a variable named `iti` for the instance — how you get hold of it depends on the integration.
+
+<details class="iti-details">
+<summary>How to get the <code>iti</code> instance for your integration</summary>
+
+- **Vanilla JavaScript library**: `const iti = intlTelInput(input, options)` — directly from the initialisation call.
+- **React**: `const iti = ref.current.getInstance()` — see [Accessing instance methods](/docs/react-component#accessing-instance-methods).
+- **Vue**: `const iti = ref.value.instance` — see [Accessing instance methods](/docs/vue-component#accessing-instance-methods).
+- **Angular**: `const iti = this.ref.getInstance()` — see [Accessing instance methods](/docs/angular-component#accessing-instance-methods).
+- **Svelte**: `const iti = ref.getInstance()` — see [Accessing instance methods](/docs/svelte-component#accessing-instance-methods).
+
+</details>
+
+> [!IMPORTANT]
+> Methods that require the [utils script](/docs/utils#loading-the-utils-script) (e.g. `getNumber`, `getNumberType`, `isValidNumber`) will throw if called before utils have finished loading. Always `await iti.promise` first:
+>
+> ```js
+> await iti.promise;
+> const number = iti.getNumber();
+> ```
+
+###### closeCountrySelector
+Type: `() => void`  
+
+Programmatically close the country selector. Useful for closing it in response to custom events (e.g. a scroll on an ancestor container that the library doesn't otherwise know about).
+
+```js
+iti.closeCountrySelector();
+```
+
+###### destroy
+Type: `() => void`  
+
+Remove the core library from the input, and unbind any event listeners.
+
+```js
+iti.destroy();
+```
+
+###### getExtension
+Type: `() => string`  
+
+Get the extension from the current number. Requires the [utils script to be loaded](/docs/utils#loading-the-utils-script).
+
+```js
+const extension = iti.getExtension();
+```
+
+For example, if the input value was `"(702) 555-5555 ext. 1234"`, this would return `"1234"`.
+
+###### getNumber
+Type: `(format?: NumberFormat) => string`  
+
+Get the current number in the given [`NumberFormat`](/docs/types#numberformat) (defaults to `"E164"`). Requires the [utils script to be loaded](/docs/utils#loading-the-utils-script). _Note that this is independent of [`numberDisplayFormat`](/docs/options#numberdisplayformat) — it always returns the requested format. Also note that this method expects a valid number, and so should only be used after validation._  
+
+```js
+const number = iti.getNumber(); // defaults to "E164" e.g. "+17024181234"
+// or
+const number = iti.getNumber("INTERNATIONAL"); // e.g. "+1 702-418-1234"
+```
+
+> [!NOTE]
+> The `"E164"` format does not include extensions (per the ITU-T E.164 spec), so e.g. `"+1 702 418 1234 ext. 789"` becomes `"+17024181234"`. The `"INTERNATIONAL"`, `"NATIONAL"`, and `"RFC3966"` formats do include the extension. To retrieve the extension on its own, use [`getExtension`](#getextension).
+
+> [!TIP]
+> You can also pass a [constant](/docs/types#constant-objects), e.g. `iti.getNumber(intlTelInput.NUMBER_FORMAT.INTERNATIONAL)` — useful in plain JavaScript where typos in the string literal won't be caught at compile time.
+
+###### getNumberType
+Type: `() => NumberType | null`  
+
+Get the [`NumberType`](/docs/types#numbertype) (fixed-line/mobile/toll-free, etc) of the current number, or `null` if it can't be determined. Requires the [utils script to be loaded](/docs/utils#loading-the-utils-script).
+
+```js
+const numberType = iti.getNumberType();
+if (numberType === "MOBILE" || numberType === "FIXED_LINE_OR_MOBILE") {
+    // is (or could be) a mobile number
+}
+```
+
+> [!TIP]
+> You can also compare against a [constant](/docs/types#constant-objects), e.g. `numberType === intlTelInput.NUMBER_TYPE.MOBILE` — useful in plain JavaScript where typos in the string literal won't be caught at compile time.
+
+> [!NOTE]
+> In some countries (e.g. the US) there's no way to differentiate between fixed-line and mobile numbers, so in those cases it will return `"FIXED_LINE_OR_MOBILE"` — hence the need to check for both values above.
+
+###### getSelectedCountry
+Type: `() => Country | null`  
+
+Get the currently selected [`Country`](/docs/types#country), or else `null` if no country is currently selected (e.g. the empty/globe state). _Note: previously named `getSelectedCountryData`._
+```js
+const country = iti.getSelectedCountry();
+```
+
+###### getValidationError
+Type: `() => ValidationError | null`  
+
+Get more information about an invalid number — returns a [`ValidationError`](/docs/types#validationerror) string, or `null` if it can't be determined. See [Show a user-facing error message](/docs/best-practices#show-a-user-facing-error-message) for a worked example. Requires the [utils script to be loaded](/docs/utils#loading-the-utils-script).
+
+###### isValidNumber
+Type: `() => boolean`  
+
+(Note: only returns `true` for valid **mobile** and **fixed_line** numbers by default - see [`allowedNumberTypes`](/docs/options#allowednumbertypes))  
+Check if the current number is valid based on its length - [see example](/examples/vanilla-javascript/validation), which should be sufficient for most use cases. See [`isValidNumberPrecise`](/docs/methods#isvalidnumberprecise) (advanced) for more precise validation, but the advantage of [`isValidNumber`](/docs/methods#isvalidnumber) is that it is much more future-proof, as while countries around the world regularly update their number rules, they rarely change their number lengths. If this method returns `false`, you can use [`getValidationError`](/docs/methods#getvalidationerror) to get more information. Requires the [utils script to be loaded](/docs/utils#loading-the-utils-script). _Note: previously named `isPossibleNumber`._  
+
+```js
+const isValid = iti.isValidNumber();
+```
+Returns: `true`/`false`
+
+###### isValidNumberPrecise
+Type: `() => boolean`  
+
+⚠️ **ADVANCED**  
+(Note: only returns `true` for valid **mobile** and **fixed_line** numbers by default - see [`allowedNumberTypes`](/docs/options#allowednumbertypes))  
+Check if the current number is valid using precise matching rules for each country/area code, etc - [see example](/examples/vanilla-javascript/validation-precise). Note that these rules change each month for various countries around the world, so you need to constantly keep the package up-to-date (e.g. via an automated script) else **you will start rejecting valid numbers**. For a simpler and more future-proof form of validation, see [`isValidNumber`](/docs/methods#isvalidnumber) above. If validation fails, you can use [`getValidationError`](/docs/methods#getvalidationerror) to get more information. Requires the [utils script to be loaded](/docs/utils#loading-the-utils-script).  
+
+```js
+const isValid = iti.isValidNumberPrecise();
+```
+Returns: `true`/`false`
+
+###### openCountrySelector
+Type: `() => void`  
+
+Programmatically open the country selector. Useful for opening it in response to a custom UI event.
+
+```js
+iti.openCountrySelector();
+```
+
+###### setDisabled
+Type: `(disabled: boolean) => void`  
+
+Updates the disabled attribute of both the telephone input and the selected country button. Accepts a boolean value. Use this instead of updating the input's disabled attribute directly, as this disables the country button too.
+
+```js
+iti.setDisabled(true);
+```
+
+###### setNumber
+Type: `(number: string) => void`  
+
+Insert a number, and update the selected country accordingly. _If the [utils script](/docs/utils#loading-the-utils-script) is loaded, the inserted value is formatted according to the [`numberDisplayFormat`](/docs/options#numberdisplayformat) option._  
+
+```js
+iti.setNumber("+447733123456");
+```
+
+###### setPlaceholderNumberType
+Type: `(type: NumberType) => void`  
+
+Change the [`placeholderNumberType`](/docs/options#placeholdernumbertype) option — see [`NumberType`](/docs/types#numbertype) for the valid values. We strongly recommend sticking to `"MOBILE"`, `"FIXED_LINE"`, or `"FIXED_LINE_OR_MOBILE"` — these are the only types with an example number for every country (see [`placeholderNumberType`](/docs/options#placeholdernumbertype) for details).
+
+```js
+iti.setPlaceholderNumberType("FIXED_LINE");
+```
+
+> [!TIP]
+> You can also pass a [constant](/docs/types#constant-objects), e.g. `iti.setPlaceholderNumberType(intlTelInput.NUMBER_TYPE.FIXED_LINE)` — useful in plain JavaScript where typos in the string literal won't be caught at compile time.
+
+###### setReadonly
+Type: `(readonly: boolean) => void`  
+
+Updates the readonly attribute of the telephone input and disables the selected country button. Accepts a boolean value. Use this instead of updating the input's readonly attribute directly, as this disables the country button too.
+
+```js
+iti.setReadonly(true);
+```
+
+###### setSelectedCountry
+Type: `(iso2?: string) => void`  
+
+Change the selected country by passing the relevant iso2 code, or omit the iso2 code to set it to empty (globe) state. It should be rare, if ever, that you need to do this, as the selected country gets updated automatically when calling [`setNumber`](/docs/methods#setnumber) and when passing a number with an international dial code, which is the recommended usage. _If the [utils script](/docs/utils#loading-the-utils-script) is loaded, the input value is reformatted to the new country according to the [`numberDisplayFormat`](/docs/options#numberdisplayformat) option._ _Note: previously named `setCountry`._
+
+```js
+iti.setSelectedCountry("gb");
+```
+
+## Static Methods
+
+###### attachUtils
+Type: `(source: () => Promise<unknown>) => Promise<unknown> | null`  
+
+An alternative to the [`loadUtils`](/docs/options#loadutils) option (which loads the utils.js script at initialisation time), this method allows you to load the utils at your time of choosing. See [Loading The Utils Script](/docs/utils#loading-the-utils-script) for more information. A [Promise](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) object is returned so you can `await` it to know when it's finished.
+
+```js
+const loadUtils = () => import("/dist/js/utils.js");
+await intlTelInput.attachUtils(loadUtils);
+// you can now call methods that use utils
+```
+
+> [!NOTE]
+> This method should only be called once per page - it will return `null` if utils have already been loaded, or are in the process of being loaded.
+
+###### getAllCountries
+Type: `() => Country[]`  
+
+Retrieve the core library's full list of countries — either to re-use elsewhere (e.g. to generate your own country selector), or alternatively, you could use it to modify the country data. _Note that any modifications must be done before initialising the core library._ See [`Country`](/docs/types#country) for the shape of each entry. _Note: previously named `getCountryData`._
+
+```js
+const countries = intlTelInput.getAllCountries();
+```
+
+###### getInstance
+Type: `(input: HTMLInputElement) => Iti | null`  
+
+After initialising the core library, you can always access the instance again using this method, by just passing in the relevant input element.
+
+```js
+const input = document.querySelector('#phone');
+const iti = intlTelInput.getInstance(input);
+iti.isValidNumber(); // etc
+```

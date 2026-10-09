@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2022",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "types": [],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "paths": {
+      "intl-tel-input": ["../packages/core/dist/js/intlTelInput.d.ts"],
+      "@intl-tel-input/react": ["../packages/react/dist/IntlTelInput.d.ts"],
+      "@intl-tel-input/react/with-utils": ["../packages/react/dist/IntlTelInputWithUtils.d.ts"],
+      "@intl-tel-input/vue": ["../packages/vue/dist/index.d.ts"],
+      "@intl-tel-input/vue/with-utils": ["../packages/vue/dist/indexWithUtils.d.ts"],
+      "@intl-tel-input/angular": ["../packages/angular/dist/IntlTelInput.d.ts"],
+      "@intl-tel-input/angular/with-utils": ["../packages/angular/dist/IntlTelInputWithUtils.d.ts"],
+      "@intl-tel-input/svelte": ["../packages/svelte/src/IntlTelInput.svelte.d.ts"],
+      "@intl-tel-input/svelte/with-utils": ["../packages/svelte/src/IntlTelInput.svelte.d.ts"]
+    }
+  },
+  "include": [
+    "typecheck-dts-react.tsx",
+    "typecheck-dts-vue.ts",
+    "typecheck-dts-angular.ts",
+    "typecheck-dts-svelte.ts"
+  ]
+}

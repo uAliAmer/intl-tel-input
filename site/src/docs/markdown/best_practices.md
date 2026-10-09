@@ -1,0 +1,48 @@
+# Best practices
+
+General advice for getting the most out of `intl-tel-input`, whether you're using the [vanilla JavaScript library](/docs/vanilla-javascript) or one of the framework components ([React](/docs/react-component), [Vue](/docs/vue-component), [Angular](/docs/angular-component), [Svelte](/docs/svelte-component)).
+
+## Load the utils module
+
+Load [`utils.js`](/docs/utils#loading-the-utils-script) to enable formatting, validation, and generating placeholder numbers.
+
+## Store and restore numbers in E.164 format
+
+Since the dial code is embedded in the number (e.g. `"+17024181234"`), you don't need to store the country separately. To read the number out in E.164, use [`getNumber`](/docs/methods#getnumber) (or your component's change callback / bound value). To restore it, pass the stored E.164 number as the input's starting value on initialisation — the core library will automatically set the country<sup>*</sup> and format the number according to your options.
+
+_<sup>*</sup>Except for some small satellite territories, which share number ranges with the main country, in which case we default to selecting the main country._
+
+## Validate before saving
+
+Check the number is valid before storing it, and reject invalid input. Get the validity from [`isValidNumber`](/docs/methods#isvalidnumber) (vanilla JS library) or the `onChangeValidity` / `validityChange` callback (framework components). Requires the utils module.
+
+##### Show a user-facing error message
+
+When a number is invalid, you'll get an error code (from [`getValidationError`](/docs/methods#getvalidationerror) for the vanilla JS library, or via the `onChangeErrorCode` / `errorCodeChange` callback for the framework components). Mapping the error codes to user-facing messages is left to you because the wording belongs to your app. Here is a reasonable starting point — a `getErrorMessage` helper:
+
+```js
+const getErrorMessage = (number, errorCode) => {
+  if (!number) return "Please enter a number";
+  const { VALIDATION_ERROR } = intlTelInput;
+  switch (errorCode) {
+    case VALIDATION_ERROR.INVALID_COUNTRY_CODE: return "Invalid dial code";
+    case VALIDATION_ERROR.TOO_SHORT: return "Too short";
+    case VALIDATION_ERROR.TOO_LONG: return "Too long";
+    default: return "Invalid number";
+  }
+};
+```
+
+## Keep strict mode on, with rejection feedback
+
+[`strictMode`](/docs/options#strictmode) is on by default and rejects non-numeric characters while capping the length at the country's max as the user types. Just as importantly, the rejection shouldn't be silent — by default, [`strictRejectAnimation`](/docs/options#strictrejectanimation) plays a built-in shake/flash animation so the user notices. For richer feedback (e.g. a toast that explains _why_ the input was rejected), listen for the `strict:reject` event (vanilla JS library) or use the equivalent `onStrictReject` / `strictReject` callback (framework components).
+
+## Set the initial country
+
+If you know the user's country, set [`initialCountry`](/docs/options#initialcountry) (e.g. `"us"`). If you don't, set the [`initialCountryLookup`](/docs/options#initialcountrylookup) option to determine the country from their IP address — [see example](/examples/vanilla-javascript/lookup-country).
+
+If you only have a tentative country hint, use [`countryOrder`](/docs/options#countryorder) to place it first in the list without selecting it.
+
+## Translate the UI
+
+If you know the user's language, you can translate the country names and UI strings — see [Localisation](/docs/localisation).

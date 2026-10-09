@@ -1,0 +1,700 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import UI from "../../../packages/core/src/js/core/ui.ts";
+import { buildSearchTokens } from "../../../packages/core/src/js/core/countrySearch.ts";
+import { CLASSES, ARIA, KEYS } from "../../../packages/core/src/js/constants.ts";
+import defaultEnglishStrings from "../../../packages/core/src/js/locale/en.ts";
+
+// Helper to create a Country-like object
+const makeCountry = (overrides) => ({
+  iso2: "aa",
+  dialCode: "1",
+  priority: 0,
+  areaCodes: null,
+  nationalPrefix: null,
+  name: "Test Country",
+  ...overrides,
+});
+
+// Helper: minimal merged options (mirrors what applyOptionSideEffects produces)
+const makeOptions = (overrides = {}) => ({
+  countrySelectorMode: "DROPDOWN",
+  allowedNumberTypes: ["MOBILE", "FIXED_LINE"],
+  allowNumberExtensions: false,
+  allowPhonewords: false,
+  placeholderNumberPolicy: "POLITE",
+  classNames: {},
+  containerClass: "",
+  countryNameLocale: "en",
+  countryOrder: null,
+  countrySearch: true,
+  customPlaceholder: null,
+  dropdownAlwaysOpen: false,
+  dropdownParent: null,
+  excludeCountries: null,
+  matchDropdownWidth: true,
+  formatAsYouType: true,
+  fullscreenParent: null,
+  hiddenInputs: null,
+  uiTranslations: { ...defaultEnglishStrings },
+  initialCountry: "",
+  initialCountryLookup: null,
+  loadUtils: null,
+  numberDisplayFormat: "NATIONAL",
+  onlyCountries: null,
+  placeholderNumberType: "MOBILE",
+  searchInputClass: "",
+  separateDialCode: false,
+  showFlags: true,
+  strictMode: false,
+  ...overrides,
+});
+
+const countries = [
+  makeCountry({ iso2: "us", dialCode: "1", name: "United States" }),
+  makeCountry({ iso2: "gb", dialCode: "44", name: "United Kingdom" }),
+  makeCountry({ iso2: "de", dialCode: "49", name: "Germany" }),
+];
+
+// Helper: create an input, build UI, and return { ui, input, wrapper }
+const buildUI = (optionOverrides = {}, inputAttrs = {}) => {
+  const input = document.createElement("input");
+  for (const [k, v] of Object.entries(inputAttrs)) {
+    input.setAttribute(k, v);
+  }
+  document.body.appendChild(input);
+
+  const options = makeOptions(optionOverrides);
+  const ui = new UI(input, options, 0);
+
+  const testCountries = countries.map((c) => ({ ...c }));
+
+  ui.buildMarkup(testCountries, buildSearchTokens(testCountries));
+  return { ui, input, countries: testCountries };
+};
+
+afterEach(() => {
+  document.body.innerHTML = "";
+});
+
+// DOM navigation helpers (UI internals are private; probe via the DOM instead).
+const getWrapper = (input) => input.parentNode;
+const getCountryContainer = (input) =>
+  getWrapper(input).querySelector(".iti__country-container");
+const getSelectedCountryEl = (input) =>
+  getWrapper(input).querySelector(".iti__selected-country");
+const getSelectedFlagEl = (input) =>
+  getWrapper(input).querySelector(".iti__selected-country .iti__flag");
+const getCountryList = (input) =>
+  getWrapper(input).querySelector(".iti__country-list");
+const getSearchInput = (input) =>
+  getWrapper(input).querySelector(".iti__search-input");
+const getHiddenInput = (input, name) =>
+  input.form?.querySelector(`input[type="hidden"][name="${name}"]`) ||
+  getWrapper(input).querySelector(`input[type="hidden"][name="${name}"]`);
+const getHighlighted = (input) =>
+  getCountryList(input).querySelector(`.${CLASSES.HIGHLIGHT}`);
+
+// ── validateInput ──────────────────────────────────────────────
+describe("UI.validateInput", () => {
+  test("accepts a real input element", () => {
+    const input = document.createElement("input");
+    expect(() => UI.validateInput(input)).not.toThrow();
+  });
+
+  test("throws for null", () => {
+    expect(() => UI.validateInput(null)).toThrow(TypeError);
+  });
+
+  test("throws for a non-input element", () => {
+    const div = document.createElement("div");
+    expect(() => UI.validateInput(div)).toThrow(TypeError);
+  });
+
+  test("throws for a plain object", () => {
+    expect(() => UI.validateInput({ tagName: "INPUT" })).toThrow(TypeError);
+  });
+
+  test("throws for a string", () => {
+    expect(() => UI.validateInput("#my-input")).toThrow(TypeError);
+  });
+});
+
+// ── buildMarkup ─────────────────────────────────────────────
+describe("UI.buildMarkup", () => {
+  test("wraps input in iti container", () => {
+    const { input } = buildUI();
+    const wrapper = input.parentNode;
+    expect(wrapper.classList.contains("iti")).toBe(true);
+  });
+
+  test("sets default tel attributes when not already present", () => {
+    const { input } = buildUI();
+    expect(input.getAttribute("type")).toBe("tel");
+    expect(input.getAttribute("autocomplete")).toBe("tel");
+    expect(input.getAttribute("inputmode")).toBe("tel");
+  });
+
+  test("preserves existing type attribute", () => {
+    const { input } = buildUI({}, { type: "text" });
+    expect(input.getAttribute("type")).toBe("text");
+  });
+
+  test("adds iti__tel-input class to input", () => {
+    const { input } = buildUI();
+    expect(input.classList.contains("iti__tel-input")).toBe(true);
+  });
+
+  test("creates selectedCountry button when countrySelectorMode is not 'OFF'", () => {
+    const { input } = buildUI({ countrySelectorMode: "DROPDOWN" });
+    const selectedCountryEl = getSelectedCountryEl(input);
+    expect(selectedCountryEl.tagName).toBe("BUTTON");
+    expect(selectedCountryEl.getAttribute(ARIA.HASPOPUP)).toBe("dialog");
+  });
+
+  test("creates selectedCountry div when countrySelectorMode is 'OFF'", () => {
+    const { input } = buildUI({ countrySelectorMode: "OFF", showFlags: true });
+    expect(getSelectedCountryEl(input).tagName).toBe("DIV");
+  });
+
+  test("builds country list with correct number of items", () => {
+    const { input } = buildUI();
+    expect(getCountryList(input).children.length).toBe(3);
+  });
+
+  test("country list items have correct data attributes", () => {
+    const { input } = buildUI();
+    const first = getCountryList(input).children[0];
+    expect(first.dataset.iso2).toBe("us");
+    expect(first.dataset.dialCode).toBe("1");
+  });
+
+  test("country list items have role=option", () => {
+    const { input } = buildUI();
+    const first = getCountryList(input).children[0];
+    expect(first.getAttribute("role")).toBe("option");
+  });
+
+  test("country list is keyboard-focusable when countrySearch disabled (a11y: scrollable regions must be reachable by keyboard)", () => {
+    const { input } = buildUI({ countrySearch: false });
+    expect(getCountryList(input).getAttribute("tabindex")).toBe("0");
+  });
+
+  test("country list is not focusable when countrySearch enabled (it would steal focus from the search input)", () => {
+    const { input } = buildUI({ countrySearch: true });
+    expect(getCountryList(input).hasAttribute("tabindex")).toBe(false);
+  });
+
+  test("builds search input when countrySearch is true", () => {
+    const { input } = buildUI({ countrySearch: true });
+    const searchInput = getSearchInput(input);
+    expect(searchInput).not.toBeNull();
+    expect(searchInput.tagName).toBe("INPUT");
+    expect(searchInput.getAttribute("role")).toBe("combobox");
+  });
+
+  test("does not build search input when countrySearch is false", () => {
+    const { input } = buildUI({ countrySearch: false });
+    expect(getSearchInput(input)).toBeNull();
+  });
+
+  test("applies containerClass to wrapper", () => {
+    const { input } = buildUI({ containerClass: "my-class" });
+    expect(input.parentNode.classList.contains("my-class")).toBe(true);
+  });
+
+  test("no countryContainer when countrySelectorMode is 'OFF' and showFlags + separateDialCode are false", () => {
+    const { input } = buildUI({
+      countrySelectorMode: "OFF",
+      showFlags: false,
+      separateDialCode: false,
+    });
+    expect(getCountryContainer(input)).toBeNull();
+  });
+
+  test("creates dial code element when separateDialCode is true", () => {
+    const { input } = buildUI({ separateDialCode: true });
+    const dialCodeEl = getSelectedCountryEl(input).querySelector(".iti__selected-dial-code");
+    expect(dialCodeEl).not.toBeNull();
+  });
+
+  test("does not create dropdown arrow when countrySelectorMode is 'OFF'", () => {
+    const { input } = buildUI({ countrySelectorMode: "OFF", showFlags: true });
+    const arrow = getSelectedCountryEl(input).querySelector(".iti__arrow");
+    expect(arrow).toBeNull();
+  });
+});
+
+// ── Hidden inputs ──────────────────────────────────────────────
+describe("UI hidden inputs", () => {
+  test("creates hidden phone and country inputs", () => {
+    const form = document.createElement("form");
+    const input = document.createElement("input");
+    input.setAttribute("name", "phone");
+    form.appendChild(input);
+    document.body.appendChild(form);
+
+    const options = makeOptions({
+      hiddenInputs: (name) => ({ phone: `${name}_full`, country: `${name}_country` }),
+    });
+    const ui = new UI(input, options, 1);
+    const testCountries = countries.map((c) => ({ ...c }));
+    ui.buildMarkup(testCountries, buildSearchTokens(testCountries));
+
+    const phoneHidden = getHiddenInput(input, "phone_full");
+    const countryHidden = getHiddenInput(input, "phone_country");
+    expect(phoneHidden).not.toBeNull();
+    expect(countryHidden).not.toBeNull();
+  });
+
+  test("does not create hidden inputs when hiddenInputs is null", () => {
+    const { input } = buildUI({ hiddenInputs: null });
+    const hiddenInputs = getWrapper(input).querySelectorAll('input[type="hidden"]');
+    expect(hiddenInputs.length).toBe(0);
+  });
+});
+
+// ── highlighting via hover ─────────────────────────────────────
+// Highlighting is triggered by a delegated mouseover listener bound when the
+// dropdown is open. We verify it via the DOM (HIGHLIGHT class / aria).
+describe("UI list-item highlight on hover", () => {
+  const hover = (item) => {
+    item.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+  };
+
+  test("adds highlight class to hovered item", () => {
+    const { ui, input } = buildUI({ dropdownAlwaysOpen: true });
+    ui.openCountrySelector(() => {}, () => {});
+    const item = getCountryList(input).children[1];
+    hover(item);
+    expect(item.classList.contains(CLASSES.HIGHLIGHT)).toBe(true);
+    expect(getHighlighted(input)).toBe(item);
+  });
+
+  test("removes highlight from previous item", () => {
+    const { ui, input } = buildUI({ dropdownAlwaysOpen: true });
+    ui.openCountrySelector(() => {}, () => {});
+    const first = getCountryList(input).children[0];
+    const second = getCountryList(input).children[1];
+    hover(first);
+    hover(second);
+    expect(first.classList.contains(CLASSES.HIGHLIGHT)).toBe(false);
+    expect(second.classList.contains(CLASSES.HIGHLIGHT)).toBe(true);
+  });
+
+  test("sets aria-activedescendant on search input when countrySearch enabled", () => {
+    const { ui, input } = buildUI({ countrySearch: true, dropdownAlwaysOpen: true });
+    ui.openCountrySelector(() => {}, () => {});
+    const item = getCountryList(input).children[1];
+    hover(item);
+    expect(getSearchInput(input).getAttribute(ARIA.ACTIVE_DESCENDANT)).toBe(
+      item.getAttribute("id"),
+    );
+  });
+
+  test("sets aria-activedescendant on country list when countrySearch disabled", () => {
+    const { ui, input } = buildUI({ countrySearch: false, dropdownAlwaysOpen: true });
+    ui.openCountrySelector(() => {}, () => {});
+    const list = getCountryList(input);
+    const item = list.children[1];
+    hover(item);
+    expect(list.getAttribute(ARIA.ACTIVE_DESCENDANT)).toBe(item.getAttribute("id"));
+  });
+});
+
+// ── focus on open ──────────────────────────────────────────────
+describe("UI focus on open", () => {
+  test("focuses the search input when countrySearch enabled", () => {
+    const { ui, input } = buildUI({ countrySearch: true });
+    ui.openCountrySelector(() => {}, () => {});
+    expect(document.activeElement).toBe(getSearchInput(input));
+  });
+
+  test("focuses the country list when countrySearch disabled", () => {
+    const { ui, input } = buildUI({ countrySearch: false });
+    ui.openCountrySelector(() => {}, () => {});
+    expect(document.activeElement).toBe(getCountryList(input));
+  });
+
+  test("does not steal focus when dropdownAlwaysOpen", () => {
+    const { ui, input } = buildUI({ countrySearch: false, dropdownAlwaysOpen: true });
+    ui.openCountrySelector(() => {}, () => {});
+    expect(document.activeElement).not.toBe(getCountryList(input));
+  });
+
+  test("clears aria-activedescendant from the country list on close", () => {
+    const { ui, input } = buildUI({ countrySearch: false });
+    ui.openCountrySelector(() => {}, () => {});
+    const list = getCountryList(input);
+    expect(list.hasAttribute(ARIA.ACTIVE_DESCENDANT)).toBe(true);
+    ui.closeCountrySelector();
+    expect(list.hasAttribute(ARIA.ACTIVE_DESCENDANT)).toBe(false);
+  });
+});
+
+// ── Tab from a detached country selector ───────────────────────
+// A detached country selector (dropdownParent / fullscreen) lives outside the country container, so
+// the container's close-on-tab listener never sees its keydowns: it must close and move focus itself.
+describe("UI Tab from a detached country selector", () => {
+  const pressTab = (shiftKey) => {
+    const onClose = vi.fn();
+    const { ui, input } = buildUI({ dropdownParent: document.body });
+    ui.openCountrySelector(() => {}, onClose);
+    const searchInput = document.querySelector(".iti__search-input");
+    const e = new KeyboardEvent("keydown", {
+      key: KEYS.TAB,
+      shiftKey,
+      bubbles: true,
+      cancelable: true,
+    });
+    searchInput.dispatchEvent(e);
+    return { input, onClose, e };
+  };
+
+  test("Tab closes and focuses the tel input", () => {
+    const { input, onClose, e } = pressTab(false);
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(e.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(input);
+  });
+
+  test("Shift+Tab closes and focuses the selected country button", () => {
+    const { input, onClose } = pressTab(true);
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(getSelectedCountryEl(input));
+  });
+
+  test("inline country selector leaves Tab to the browser", () => {
+    const onClose = vi.fn();
+    const { ui, input } = buildUI();
+    ui.openCountrySelector(() => {}, onClose);
+    const e = new KeyboardEvent("keydown", { key: KEYS.TAB, bubbles: true, cancelable: true });
+    getSearchInput(input).dispatchEvent(e);
+    expect(e.defaultPrevented).toBe(false);
+  });
+});
+
+// ── keyboard arrow navigation ──────────────────────────────────
+// handleUpDownKey is private; triggered via keydown events that bubble up to
+// the dropdown content (where the listener is bound) while the dropdown is open.
+describe("UI arrow-key navigation", () => {
+  const pressKey = (input, key) => {
+    getSearchInput(input).dispatchEvent(
+      new KeyboardEvent("keydown", { key, bubbles: true }),
+    );
+  };
+
+  test("ArrowDown moves to next sibling", () => {
+    const { ui, input } = buildUI({ dropdownAlwaysOpen: true });
+    ui.openCountrySelector(() => {}, () => {});
+    // openCountrySelector highlights the first item by default
+    pressKey(input, KEYS.ARROW_DOWN);
+    expect(getHighlighted(input)).toBe(getCountryList(input).children[1]);
+  });
+
+  test("ArrowUp moves to previous sibling", () => {
+    const { ui, input } = buildUI({ dropdownAlwaysOpen: true });
+    ui.openCountrySelector(() => {}, () => {});
+    pressKey(input, KEYS.ARROW_DOWN); // now on children[1]
+    pressKey(input, KEYS.ARROW_UP); // back to children[0]
+    expect(getHighlighted(input)).toBe(getCountryList(input).children[0]);
+  });
+
+  test("ArrowDown wraps to first item from last", () => {
+    const { ui, input } = buildUI({ dropdownAlwaysOpen: true });
+    ui.openCountrySelector(() => {}, () => {});
+    const list = getCountryList(input);
+    // Move to the last item
+    for (let i = 0; i < list.children.length - 1; i++) {
+      pressKey(input, KEYS.ARROW_DOWN);
+    }
+    expect(getHighlighted(input)).toBe(list.children[list.children.length - 1]);
+    pressKey(input, KEYS.ARROW_DOWN);
+    expect(getHighlighted(input)).toBe(list.children[0]);
+  });
+
+  test("ArrowUp wraps to last item from first", () => {
+    const { ui, input } = buildUI({ dropdownAlwaysOpen: true });
+    ui.openCountrySelector(() => {}, () => {});
+    const list = getCountryList(input);
+    // openCountrySelector starts us on the first item
+    pressKey(input, KEYS.ARROW_UP);
+    expect(getHighlighted(input)).toBe(list.children[list.children.length - 1]);
+  });
+
+  // The country list is keyboard-focusable (tabindex="0") to satisfy a11y
+  // checks for scrollable regions; keyboard navigation must keep working
+  // when focus actually lands there rather than on the search input/button.
+  test("ArrowDown moves highlight when keydown originates from the country list itself", () => {
+    const { ui, input } = buildUI({
+      dropdownAlwaysOpen: true,
+      countrySearch: false,
+    });
+    ui.openCountrySelector(() => {}, () => {});
+    const list = getCountryList(input);
+    list.dispatchEvent(
+      new KeyboardEvent("keydown", { key: KEYS.ARROW_DOWN, bubbles: true }),
+    );
+    expect(getHighlighted(input)).toBe(list.children[1]);
+  });
+});
+
+// ── country search filtering ──────────────────────────────────
+// Filtering is private; triggered by typing in the search input (debounced).
+describe("UI country search filtering", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const typeInSearch = (searchInput, value) => {
+    searchInput.value = value;
+    searchInput.dispatchEvent(new Event("input", { bubbles: true }));
+    // Advance past the search debounce (TIMINGS.SEARCH_DEBOUNCE_MS = 100).
+    vi.advanceTimersByTime(200);
+  };
+
+  test("empty query restores all countries", () => {
+    const { ui, input } = buildUI({ countrySearch: true, dropdownAlwaysOpen: true });
+    ui.openCountrySelector(() => {}, () => {});
+    const searchInput = getSearchInput(input);
+    typeInSearch(searchInput, "united");
+    typeInSearch(searchInput, "");
+    expect(getCountryList(input).children.length).toBe(3);
+  });
+
+  test("filters to matched countries", () => {
+    const { ui, input } = buildUI({ countrySearch: true, dropdownAlwaysOpen: true });
+    ui.openCountrySelector(() => {}, () => {});
+    typeInSearch(getSearchInput(input), "germany");
+    expect(getCountryList(input).children.length).toBe(1);
+    expect(getCountryList(input).children[0].dataset.iso2).toBe("de");
+  });
+
+  test("highlights first matched country", () => {
+    const { ui, input } = buildUI({ countrySearch: true, dropdownAlwaysOpen: true });
+    ui.openCountrySelector(() => {}, () => {});
+    typeInSearch(getSearchInput(input), "united");
+    expect(getHighlighted(input)).toBe(getCountryList(input).children[0]);
+  });
+
+  test("clears highlight when no matches", () => {
+    const { ui, input } = buildUI({ countrySearch: true, dropdownAlwaysOpen: true });
+    ui.openCountrySelector(() => {}, () => {});
+    typeInSearch(getSearchInput(input), "zzzzz");
+    expect(getHighlighted(input)).toBeNull();
+    expect(getCountryList(input).children.length).toBe(0);
+  });
+});
+
+// ── search clear button ───────────────────────────────────────
+describe("UI search clear button", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  test("clicking it clears search input and restores all countries", () => {
+    const { ui, input } = buildUI({ countrySearch: true, dropdownAlwaysOpen: true });
+    ui.openCountrySelector(() => {}, () => {});
+
+    const searchInput = getSearchInput(input);
+    searchInput.value = "germany";
+    searchInput.dispatchEvent(new Event("input", { bubbles: true }));
+    vi.advanceTimersByTime(200);
+    expect(getCountryList(input).children.length).toBe(1);
+
+    document.querySelector(".iti__search-clear").click();
+    expect(searchInput.value).toBe("");
+    expect(getCountryList(input).children.length).toBe(3);
+  });
+});
+
+// ── setSelectedCountry ─────────────────────────────────────────────────
+describe("UI.setSelectedCountry", () => {
+  test("updates flag class for selected country", () => {
+    const { ui, input } = buildUI();
+    ui.setSelectedCountry({ iso2: "gb", dialCode: "44", name: "United Kingdom" });
+    expect(getSelectedFlagEl(input).className).toBe("iti__flag iti__gb");
+  });
+
+  test("shows globe icon when iso2 is empty", () => {
+    const { ui, input } = buildUI();
+    ui.setSelectedCountry({ iso2: "", dialCode: "", name: "" });
+    expect(getSelectedFlagEl(input).className).toContain(CLASSES.GLOBE);
+    expect(getSelectedFlagEl(input).innerHTML).toContain("iti__globe-svg");
+  });
+
+  test("sets aria-label on selectedCountry", () => {
+    const { ui, input } = buildUI();
+    ui.setSelectedCountry({ iso2: "us", dialCode: "1", name: "United States" });
+    const label = getSelectedCountryEl(input).getAttribute(ARIA.LABEL);
+    expect(label).toContain("United States");
+    expect(label).toContain("+1");
+  });
+
+  test("updates dial code element when separateDialCode enabled", () => {
+    const { ui, input } = buildUI({ separateDialCode: true });
+    ui.setSelectedCountry({ iso2: "de", dialCode: "49", name: "Germany" });
+    const dialCodeEl = getSelectedCountryEl(input).querySelector(".iti__selected-dial-code");
+    expect(dialCodeEl.textContent).toBe("+49");
+  });
+
+  test("marks list item as selected with aria and check icon", () => {
+    const { ui, input } = buildUI();
+    ui.setSelectedCountry({ iso2: "gb", dialCode: "44", name: "United Kingdom" });
+    const gbItem = getCountryList(input).querySelector("[data-iso2=\"gb\"]");
+    expect(gbItem.getAttribute(ARIA.SELECTED)).toBe("true");
+    expect(gbItem.querySelector(".iti__country-check")).not.toBeNull();
+  });
+
+  test("deselects previous country when selecting a new one", () => {
+    const { ui, input } = buildUI();
+    ui.setSelectedCountry({ iso2: "us", dialCode: "1", name: "United States" });
+    ui.setSelectedCountry({ iso2: "gb", dialCode: "44", name: "United Kingdom" });
+
+    const usItem = getCountryList(input).querySelector("[data-iso2=\"us\"]");
+    const gbItem = getCountryList(input).querySelector("[data-iso2=\"gb\"]");
+    expect(usItem.getAttribute(ARIA.SELECTED)).toBe("false");
+    expect(usItem.querySelector(".iti__country-check")).toBeNull();
+    expect(gbItem.getAttribute(ARIA.SELECTED)).toBe("true");
+  });
+});
+
+// ── openCountrySelector / closeCountrySelector / isCountrySelectorOpen ─────────────
+describe("UI dropdown open/close", () => {
+  test("isCountrySelectorOpen returns false initially", () => {
+    const { ui } = buildUI();
+    expect(ui.isCountrySelectorOpen()).toBe(false);
+  });
+
+  test("openCountrySelector makes dropdown visible", () => {
+    const { ui, input } = buildUI({ dropdownAlwaysOpen: true });
+    ui.openCountrySelector(() => {}, () => {});
+    expect(ui.isCountrySelectorOpen()).toBe(true);
+    expect(getSelectedCountryEl(input).getAttribute(ARIA.EXPANDED)).toBe("true");
+  });
+
+  test("closeCountrySelector hides dropdown", () => {
+    const { ui, input } = buildUI({ dropdownAlwaysOpen: true });
+    ui.openCountrySelector(() => {}, () => {});
+    ui.closeCountrySelector();
+    expect(ui.isCountrySelectorOpen()).toBe(false);
+    expect(getSelectedCountryEl(input).getAttribute(ARIA.EXPANDED)).toBe("false");
+  });
+
+  test("openCountrySelector highlights first item when none selected", () => {
+    const { ui, input } = buildUI({ dropdownAlwaysOpen: true });
+    ui.openCountrySelector(() => {}, () => {});
+    expect(getHighlighted(input)).toBe(getCountryList(input).children[0]);
+  });
+
+  test("closeCountrySelector clears search input when countrySearch enabled", () => {
+    const { ui, input } = buildUI({ countrySearch: true, dropdownAlwaysOpen: true });
+    ui.openCountrySelector(() => {}, () => {});
+    const searchInput = getSearchInput(input);
+    searchInput.value = "test";
+    ui.closeCountrySelector();
+    expect(searchInput.value).toBe("");
+  });
+
+  test("closeCountrySelector resets highlighted item when countrySearch enabled", () => {
+    const { ui, input } = buildUI({ countrySearch: true, dropdownAlwaysOpen: true });
+    ui.openCountrySelector(() => {}, () => {});
+    ui.closeCountrySelector();
+    expect(getHighlighted(input)).toBeNull();
+  });
+});
+
+// ── destroy ────────────────────────────────────────────────────
+describe("UI.destroy", () => {
+  test("removes wrapper and restores input to its original position", () => {
+    const { ui, input } = buildUI();
+    expect(input.parentNode.classList.contains("iti")).toBe(true);
+    ui.destroy();
+    expect(input.parentNode).toBe(document.body);
+    expect(document.querySelector(".iti")).toBeNull();
+  });
+
+  test("clears data-intl-tel-input-id from input", () => {
+    const { ui, input } = buildUI();
+    expect(input.dataset.intlTelInputId).toBeDefined();
+    ui.destroy();
+    expect(input.dataset.intlTelInputId).toBeUndefined();
+  });
+
+  test("restores original paddingLeft when separateDialCode was enabled", () => {
+    const input = document.createElement("input");
+    input.style.paddingLeft = "20px";
+    document.body.appendChild(input);
+
+    const options = makeOptions({ separateDialCode: true });
+    const ui = new UI(input, options, 2);
+    const testCountries = countries.map((c) => ({ ...c }));
+    ui.buildMarkup(testCountries, buildSearchTokens(testCountries));
+
+    // paddingLeft will have been overwritten by buildMarkup
+    expect(input.style.paddingLeft).not.toBe("20px");
+    ui.destroy();
+    expect(input.style.paddingLeft).toBe("20px");
+  });
+});
+
+// ── scroll behavior ────────────────────────────────────────────
+describe("UI dropdown scroll behavior", () => {
+  test("openCountrySelector does not throw when scrolling highlighted item into view", () => {
+    // openCountrySelector internally calls scrollCountryListToItem on the first item.
+    const { ui } = buildUI({ dropdownAlwaysOpen: true });
+    expect(() => ui.openCountrySelector(() => {}, () => {})).not.toThrow();
+  });
+});
+
+// ── disabled input ─────────────────────────────────────────────
+describe("UI with disabled input", () => {
+  test("disables the selectedCountry button when input is disabled", () => {
+    const { input } = buildUI({}, { disabled: "true" });
+    expect(getSelectedCountryEl(input).getAttribute("disabled")).toBe("true");
+  });
+});
+
+// ── RTL ────────────────────────────────────────────────────────
+describe("UI RTL support", () => {
+  test("sets dir=ltr on wrapper when input is inside RTL container", () => {
+    const rtlContainer = document.createElement("div");
+    rtlContainer.setAttribute("dir", "rtl");
+    document.body.appendChild(rtlContainer);
+
+    const input = document.createElement("input");
+    rtlContainer.appendChild(input);
+
+    const options = makeOptions();
+    const ui = new UI(input, options, 3);
+    const testCountries = countries.map((c) => ({ ...c }));
+    ui.buildMarkup(testCountries, buildSearchTokens(testCountries));
+
+    const wrapper = input.parentNode;
+    expect(wrapper.getAttribute("dir")).toBe("ltr");
+  });
+});
+
+// ── showFlags: false ───────────────────────────────────────────
+describe("UI with showFlags: false", () => {
+  test("does not render flag divs in country list items", () => {
+    const { input } = buildUI({ showFlags: false });
+    const firstItem = getCountryList(input).children[0];
+    const flagEl = firstItem.querySelector(`.${CLASSES.FLAG}`);
+    expect(flagEl).toBeNull();
+  });
+
+  test("setSelectedCountry uses globe class when showFlags is false and iso2 is set", () => {
+    const { ui, input } = buildUI({ showFlags: false });
+    ui.setSelectedCountry({ iso2: "us", dialCode: "1", name: "United States" });
+    expect(getSelectedFlagEl(input).className).toContain(CLASSES.GLOBE);
+  });
+});

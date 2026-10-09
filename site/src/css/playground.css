@@ -1,0 +1,641 @@
+:root {
+  /* Make the file hash different, so cloudflare stops serving a broken version of the file - safe to delete this later */
+  --build-bust: 1;
+}
+/* When navigating to a Playground heading via hash, leave space above it. */
+.iti-playground h2[id] {
+  scroll-margin-top: 30px;
+}
+
+/* Make enable span behave like a label (default cursor) */
+.form-check-enable-span {
+  cursor: default;
+}
+/* force these buttons to have the same colour as text-muted, which has a high enough contrast ratio to pass a11y guidelines. */
+.playground-action-btn {
+  color: var(--bs-secondary-color) !important;
+}
+.playground-action-btn:hover {
+  background-color: #e3e1e1;
+  [data-bs-theme="dark"] & {
+    background-color: #363535;
+  }
+}
+/* Custom combobox: text input with filterable suggestion dropdown.
+   The menu is a regular DOM element under our control, so unlike a native
+   <datalist> it doesn't get dismissed by validation classes, hint mutations,
+   or live-demo reinits elsewhere on the page. */
+.iti-playground-combobox {
+  position: relative;
+}
+.iti-playground-combobox-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 10;
+  margin: 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  background-color: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.375rem;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  max-height: 240px;
+  overflow-y: auto;
+  /* Grow to fit the widest item so long country names stay readable when the
+     input itself is narrow (e.g. inside an overrides-editor row). Stays at
+     least as wide as the input, capped so it can't run off the viewport. */
+  min-width: 100%;
+  width: max-content;
+  max-width: min(28rem, calc(100vw - 2rem));
+}
+.iti-playground-combobox-option {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  cursor: pointer;
+  color: var(--bs-body-color);
+}
+.iti-playground-combobox-option:hover,
+.iti-playground-combobox-option.is-active {
+  background-color: var(--bs-tertiary-bg);
+}
+.iti-playground-combobox-value {
+  font-family: var(--bs-font-monospace);
+  font-size: 0.875em;
+  color: var(--bs-secondary-color);
+  min-width: 3.5em;
+}
+.iti-playground-combobox-label {
+  flex: 1;
+}
+.iti-playground-combobox-option.is-selected {
+  display: none;
+}
+.iti-playground-combobox-empty {
+  padding: 0.25rem 0.75rem;
+  color: var(--bs-secondary-color);
+  font-style: italic;
+  cursor: default;
+}
+
+/* Multi-select combobox: chip-style selected items + filterable suggestion menu.
+   Stores its value as a JSON array on a hidden input. */
+.iti-playground-multi-combobox {
+  position: relative;
+}
+.iti-playground-multi-combobox-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  cursor: text;
+  min-height: calc(1.5em + 0.75rem + 2px); /* match .form-control */
+  /* The wrapper itself never focuses (the inner filter does), so BS5's
+     0.15s border/background transition only flashes on filled→empty swaps. */
+  transition: none;
+}
+/* Single-select: once filled, drop the input-like wrapper so the chip stands
+   on its own — visually distinct from multi-select where the filter persists.
+   Keep min-height so the row doesn't jump between filter/chip states. */
+.iti-playground-single-combobox.is-filled .iti-playground-multi-combobox-control {
+  border: 0;
+  background: transparent;
+  cursor: default;
+  box-shadow: none;
+}
+.iti-playground-multi-combobox-filter {
+  flex: 1;
+  min-width: 8em;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  padding: 0.1rem 0.25rem;
+  font: inherit;
+  color: inherit;
+}
+.iti-playground-multi-combobox-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.1rem 0.35rem 0.1rem 0.5rem;
+  border-radius: 999px;
+  background-color: var(--bs-tertiary-bg);
+  border: 1px solid var(--bs-border-color);
+  font-size: 0.875em;
+  line-height: 1.4;
+  user-select: none;
+}
+.iti-playground-multi-combobox-chip[draggable="true"] {
+  cursor: grab;
+}
+.iti-playground-multi-combobox-chip.is-dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+.iti-playground-multi-combobox-chip.is-drop-target-before {
+  box-shadow: -3px 0 0 var(--bs-primary);
+}
+.iti-playground-multi-combobox-chip.is-drop-target-after {
+  box-shadow: 3px 0 0 var(--bs-primary);
+}
+.iti-playground-multi-combobox-chip-code {
+  font-family: var(--bs-font-monospace);
+  color: var(--bs-secondary-color);
+}
+.iti-playground-multi-combobox-chip-label {
+  color: var(--bs-body-color);
+}
+.iti-playground-multi-combobox-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1em;
+  height: 1.1em;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--bs-secondary-color);
+  font-size: 1.1em;
+  line-height: 1;
+  cursor: pointer;
+}
+.iti-playground-multi-combobox-chip-remove:hover {
+  background-color: var(--bs-secondary-bg);
+  color: var(--bs-body-color);
+}
+
+/* Row editor for ISO2-keyed string maps (e.g. countryNameOverrides). */
+.iti-playground-overrides-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  /* Allow shrinking inside the parent .iti-playground-control's 1fr column so
+     the editor stays the same width as sibling controls. */
+  min-width: 0;
+}
+.iti-playground-overrides-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.iti-playground-overrides-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 0.35rem;
+  align-items: start;
+  min-width: 0;
+}
+.iti-playground-overrides-header {
+  font-size: 0.85rem;
+  color: var(--bs-secondary-color);
+}
+/* Invisible spacer must keep its horizontal padding so it occupies the same
+   grid-track width as the real remove button below it, but drop vertical
+   padding so it doesn't inflate the header row's height. */
+.iti-playground-overrides-header .iti-playground-overrides-remove {
+  visibility: hidden;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+/* The country combobox inside a row stretches to fill its grid cell. */
+.iti-playground-overrides-row .iti-playground-combobox {
+  width: 100%;
+}
+.iti-playground-overrides-remove {
+  padding: 0.25rem 0.6rem;
+  line-height: 1;
+  font-size: 1.25rem;
+  color: var(--bs-secondary-color);
+  border: 0;
+  background: transparent;
+}
+.iti-playground-overrides-remove:hover {
+  color: var(--bs-body-color);
+}
+.iti-playground-overrides-add {
+  align-self: flex-start;
+  text-decoration: none;
+  padding: 0;
+}
+
+/* multidropdown toggle: disable hover styling when closed */
+.iti-playground-multidropdown-toggle {
+  cursor: default;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  --bs-btn-bg: var(--bs-body-bg);
+  --bs-btn-color: var(--bs-body-color);
+  --bs-btn-border-color: var(--bs-border-color, #ced4da);
+  --bs-btn-hover-bg: var(--bs-btn-bg);
+  --bs-btn-hover-color: var(--bs-btn-color);
+  --bs-btn-hover-border-color: var(--bs-btn-border-color);
+  --bs-btn-active-bg: var(--bs-btn-bg);
+  --bs-btn-active-color: var(--bs-btn-color);
+  --bs-btn-active-border-color: var(--bs-btn-border-color);
+
+  /* multidropdown toggle: use CSS chevron for down arrow */
+  &.dropdown-toggle::after {
+    opacity: 0.85;
+    margin: 0 3px 2px auto;
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    content: "";
+    border: solid currentColor;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+  /* multidropdown toggle: flip down arrow when open */
+  &.dropdown-toggle.show::after,
+  .dropdown.show > &.dropdown-toggle::after {
+    margin-top: 6px;
+    transform: rotate(225deg);
+  }
+}
+
+/* mobile: make the presets select smaller so it doesn't distract from the page title */
+@media (max-width: 576px) {
+  .playground-presets-select {
+    width: 7em;
+  }
+}
+
+.iti-playground-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem; /* bootstrap g-4 */
+
+  @media (min-width: 992px) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 1.5rem; /* bootstrap g-4 */
+    align-items: start;
+  }
+}
+/* On mobile, flatten the column wrappers so we can control ordering. */
+.iti-playground-layout__col {
+  display: contents;
+}
+.iti-playground-layout__demo {
+  order: 1;
+}
+.iti-playground-layout__options {
+  order: 2;
+}
+.iti-playground-layout__attrs {
+  order: 3;
+}
+.iti-playground-layout__code {
+  order: 4;
+}
+.iti-playground-layout__demo,
+.iti-playground-layout__options,
+.iti-playground-layout__attrs,
+.iti-playground-layout__code {
+  min-width: 0;
+}
+.iti-playground-layout__demo {
+  /* Container query context: the inner 2-col layout below should flip based
+     on the demo block's own width, not the viewport — once the outer
+     playground goes 2-col, the demo block becomes ~half-width and a
+     viewport-based breakpoint fires at the wrong moment. */
+  container-type: inline-size;
+  container-name: demo;
+
+  .iti,
+  input[type="tel"] {
+    width: 100%;
+    max-width: 250px;
+  }
+  /* Match the strict:reject toast to the input width (example pages get this
+     for free via .section.demo .demo-input-wrap { width: fit-content }, but
+     the playground wrap stretches full-width / spans both grid columns). */
+  .demo-toast-container {
+    max-width: 250px;
+  }
+  /* Single-column layout: space the live results away from the input.
+     The 2-column layout below overrides this back to 0. */
+  .iti-live-results {
+    margin-top: 10px;
+    width: fit-content;
+  }
+
+  /* Wider block: input on the left, live results + checkboxes on the right,
+     separated by a subtle dividing line. */
+  @container demo (min-width: 600px) {
+    .demo-input-wrap {
+      display: grid;
+      grid-template-columns: 250px 1fr;
+      column-gap: 1.5rem;
+      align-items: start;
+      max-width: none;
+    }
+    .iti-playground-demo-aside {
+      border-left: 1px solid var(--bs-border-color);
+      padding-left: 1.5rem;
+    }
+    .iti-live-results {
+      margin-top: 0;
+    }
+  }
+}
+
+@media (min-width: 992px) {
+  .iti-playground-layout__col {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem; /* bootstrap g-4 */
+    min-width: 0;
+  }
+
+  .iti-playground-layout__col--left {
+    grid-column: 1;
+  }
+
+  .iti-playground-layout__col--right {
+    grid-column: 2;
+    position: sticky;
+    top: calc(70px + 1rem);
+    max-height: calc(100vh - 70px - 2rem);
+    overflow: auto;
+    /* scroll-behavior doesn't inherit into nested scroll containers, so mirror
+       the smooth-scroll Bootstrap sets on :root (also gated on reduced motion). */
+    @media (prefers-reduced-motion: no-preference) {
+      scroll-behavior: smooth;
+    }
+  }
+}
+
+.iti-playground--keep-dropdown-open {
+  .iti__country-selector.iti__hide {
+    display: block !important;
+  }
+
+  /* Reserve vertical space for the always-open (absolutely-positioned) dropdown.
+     On mobile this pushes the next sibling down; on desktop the 2-column layout
+     means it forces the demo card to fit the dropdown's height. */
+  .iti {
+    margin-bottom: 230px;
+  }
+}
+
+.playground-dropdown-checkbox.is-disabled .iti-playground-info {
+  color: var(--bs-warning-text-emphasis, #997404);
+}
+
+/* Briefly highlight a control when the page is linked to via #optionName
+   (or #keep-dropdown-open / #sync-demo-state for the demo checkboxes) so
+   the eye lands on the relevant control after the scroll. */
+.playground-dropdown-checkbox.is-flashing,
+.iti-playground-demo-controls .form-check.is-flashing,
+.iti-playground-control.is-flashing {
+  animation: iti-flash-highlight 0.2s ease-out 3;
+  border-radius: 0.25rem;
+}
+@keyframes iti-flash-highlight {
+  0% {
+    background-color: rgba(255, 193, 7, 0.55);
+    box-shadow: 0 0 0 4px rgba(255, 193, 7, 0.55);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: 0 0 0 4px rgba(255, 193, 7, 0);
+  }
+}
+
+.iti-playground-demo-controls {
+  margin-top: 1rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px dashed var(--bs-border-color);
+  border-radius: 0.375rem;
+  background-color: var(--bs-tertiary-bg);
+  max-width: 296px;
+}
+.iti-playground-demo-controls__heading {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--bs-secondary-color);
+  margin-bottom: 0.25rem;
+}
+.iti-playground-demo-controls__subheading {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  font-style: italic;
+}
+
+/* playground: interactive tooltip with docs link — opt-in via customClass.
+   Most tooltips should keep Bootstrap's default `pointer-events: none` so
+   that hover triggers don't flicker when the cursor crosses onto the tip. */
+.tooltip.iti-playground-tooltip-interactive {
+  pointer-events: auto;
+
+  a {
+    color: inherit;
+  }
+
+  /* Extend the tooltip hit area down to fully cover the info icon (plus a
+     small sideways buffer), so the whole icon+gap+tooltip region behaves as
+     one hover target. Tooltip only dismisses once the cursor leaves this. */
+  &::after {
+    content: "";
+    position: absolute;
+    left: -22px;
+    right: -22px;
+    top: -22px;
+    bottom: -22px;
+    z-index: -1;
+  }
+}
+
+/* playground: option info tooltip */
+.iti-playground-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 0;
+  color: var(--bs-secondary-color, #6c757d);
+  user-select: none;
+  cursor: help;
+
+  > svg {
+    display: block;
+    width: 16px;
+    height: 16px;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgb(var(--header-bg-color-rgb));
+    outline-offset: 2px;
+  }
+}
+
+.iti-playground-labelgroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+
+  > .form-label {
+    margin-bottom: 0;
+  }
+}
+
+.iti-playground-example-toggle {
+  margin-top: 6px;
+}
+
+/* preserve bootstrap-like spacing for stacked (mobile) label + control */
+.iti-playground-control {
+  &:not(.iti-playground-control--check) > .iti-playground-labelgroup {
+    margin-bottom: var(--bs-form-label-margin-bottom, 0.5rem);
+  }
+
+  /* playground: on wider screens, align label + control horizontally to save space */
+  @media (min-width: 600px) {
+    /* Shared grid layout for controls on wider screens */
+    & {
+      display: grid;
+      grid-template-columns: minmax(160px, 220px) 1fr;
+      grid-template-areas: "label control";
+      column-gap: 12px;
+
+      > .iti-playground-labelgroup {
+        grid-area: label;
+        margin-bottom: 0;
+      }
+    }
+
+    /* Example-code variants: row 1 col 2 contains a multi-line <pre> snippet,
+       so top-align the label rather than centering it against a tall block.
+       Other controls let the default `stretch` + labelgroup's internal flex
+       centering handle vertical alignment against the input. */
+    &.iti-playground-control--example-code {
+      align-items: start;
+      row-gap: 6px;
+    }
+
+    /* Overrides-editor and multi-combobox variants grow vertically as rows/
+       chips are added; pin the label to the top so it doesn't drift downward. */
+    &.iti-playground-control--overrides,
+    &.iti-playground-control--multi-combobox {
+      align-items: start;
+    }
+    /* Nudge the top-pinned label down to align with the first chip row
+       (matches .iti-playground-multi-combobox-control's border + padding-top). */
+    &.iti-playground-control--multi-combobox > .iti-playground-labelgroup {
+      padding-top: calc(0.25rem + 1px);
+    }
+
+    /* Non-checkbox controls: form-specific tweaks */
+    &:not(.iti-playground-control--check) {
+      > .form-control,
+      > .form-select,
+      > .dropdown,
+      > .iti-playground-input-wrap {
+        min-width: 0;
+      }
+    }
+
+    /* On mobile, checkboxes appear on LHS. Here, we move them to the RHS. */
+    &.iti-playground-control--check {
+      align-items: center;
+      padding-left: 0; /* override bootstrap .form-check */
+
+      > .form-check-input {
+        grid-area: control;
+        margin-left: 0;
+        float: none;
+        justify-self: start;
+      }
+    }
+  }
+}
+/* playground: loadUtils has an example snippet + a checkbox, so keep the example aligned with the label, and put the checkbox beneath. */
+@media (min-width: 600px) {
+  .iti-playground-control--example-code > .iti-playground-example-toggle {
+    grid-column: 2;
+    margin-top: 0;
+  }
+}
+/* contextual hint (shown after toggling certain options) — floats as a toast
+   above the input so it doesn't disturb the form layout. */
+.iti-playground-input-wrap,
+.iti-playground-control--check,
+.iti-playground-example-toggle {
+  position: relative;
+}
+.iti-playground-hint-toast-container {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 5;
+  /* Let clicks pass through the container so it doesn't shadow form controls
+     above it when no toast is visible; the toast itself opts back in. */
+  pointer-events: none;
+}
+.iti-playground-hint-toast-container .toast {
+  pointer-events: auto;
+  width: 100%;
+  min-width: 0; /* override Bootstrap's 350px so the toast can shrink to the column width */
+  max-width: 100%;
+}
+/* Inside the (primary-coloured) hint toast, drop the monospace/blue link
+   styling — white prose-style links read better against the dark background. */
+.iti-playground-hint-toast .iti-playground-option-link {
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  text-decoration: underline;
+}
+/* On desktop, boolean controls' wrapper IS the grid container (label + checkbox
+   in one row); confine the toast to the control column so it doesn't span the
+   label column too. CSS Grid lets absolutely-positioned items use a grid area
+   as their containing block via grid-column/grid-row. */
+@media (min-width: 600px) {
+  .iti-playground-control--check > .iti-playground-hint-toast-container {
+    grid-area: control;
+  }
+}
+
+/* Inline links to other options inside hints/notes — visually code-like since
+   they reference camelCase option identifiers, but still clearly clickable. */
+.iti-playground-option-link {
+  font-family: var(--bs-font-monospace);
+  font-size: 0.95em;
+}
+
+.iti-playground pre {
+  display: block;
+}
+
+/* playground: integration tabs above the init code snippet */
+.iti-playground-integration-tabs {
+  flex-wrap: wrap;
+
+  .nav-link {
+    padding: 0.35rem 0.75rem;
+    color: var(--bs-secondary-color);
+    border: 1px solid transparent;
+    background: transparent;
+  }
+  .nav-link:hover:not(.active) {
+    color: var(--bs-body-color);
+    border-color: var(--bs-border-color) var(--bs-border-color) transparent;
+  }
+  .nav-link.active {
+    color: var(--bs-body-color);
+  }
+}
+

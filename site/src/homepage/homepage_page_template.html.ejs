@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <%= common_meta_tags %>
+    <title><%= homepageTitle %></title>
+    <link rel="canonical" href="<%= homepageCanonicalUrl %>" />
+    <meta name="description" content="<%= homepageMetaDesc %>" />
+    <%= og_meta_tags %>
+    <%= common_styles %>
+    <link rel="stylesheet" href="<%= cacheBust('/css/homepage.css') %>" />
+
+    <%= common_head_end_prod %>
+  </head>
+
+  <body class="iti-page iti-page--homepage">
+    <%= layout %>
+    <%= common_body_end %>
+    <%= iti_script %>
+    <script src="<%= cacheBust('/js/homepage.js') %>"></script>
+    <%= iti_live_results_script %>
+  </body>
+</html>

@@ -1,0 +1,11 @@
+<div class="alert alert-warning" role="alert">
+  <strong>Warning:</strong> Various countries around the world update their number rules every month, so <a href="/docs/methods#isvalidnumberprecise" class="alert-link"><code>isValidNumberPrecise</code></a> will start rejecting valid numbers unless you constantly keep it up-to-date e.g. via an automated script. For this reason, we strongly recommend sticking to <a href="/examples/vanilla-javascript/validation" class="alert-link">the standard validation method</a>, which is much more stable as it only checks number length rules, which rarely change.
+</div>
+
+<p><a href="/docs/methods#isvalidnumberprecise"><code>isValidNumberPrecise</code></a> respects the <a href="/docs/options#allowednumbertypes"><code>allowedNumberTypes</code></a> option, which is set to <code>["MOBILE", "FIXED_LINE"]</code> by default, meaning it will only return <code>true</code> for those types of numbers.</p>
+
+<p>If it returns <code>false</code>, you can use <a href="/docs/methods#getvalidationerror"><code>getValidationError</code></a> to get the error code, which you can then map to your own custom error message, as in the example below.</p>
+
+<p>Note: the red/green styling and warning/success icons are not part of the library — in this example they come from <a rel="noopener" href="https://getbootstrap.com/docs/5.3/forms/validation/">Bootstrap form validation</a>.</p>
+
+<p>Note: the toast shown when input is rejected isn't part of the library — see the <a href="/docs/vanilla-javascript#strict-reject"><code>strict:reject</code></a> event docs for an example of how to wire one up yourself.</p>

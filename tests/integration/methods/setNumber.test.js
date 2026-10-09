@@ -1,0 +1,64 @@
+/**
+ * @vitest-environment jsdom
+ */
+import { initIntlTelInput, teardown, checkFlagSelected, intlTelInput } from "../helpers/helpers";
+
+describe("setNumber method", () => {
+  describe("no utils", () => {
+    let iti, input, container, utilsBackup;
+
+    beforeEach(() => {
+      ({ iti, input, container } = initIntlTelInput());
+      utilsBackup = intlTelInput.utils;
+      intlTelInput.utils = null;
+    });
+
+    afterEach(() => {
+      teardown(iti);
+      // replace intlTelInput.utils after setting it to null in one of the tests
+      intlTelInput.utils = utilsBackup;
+    });
+
+    test("sets raw value", () => {
+      iti.setNumber("+447733123456");
+      expect(input.value).toEqual("7733123456");
+    });
+
+    test("updates flag", () => {
+      iti.setNumber("+447733123456");
+      expect(checkFlagSelected(container, "gb")).toBe(true);
+    });
+  });
+
+  describe("with utils, numberDisplayFormat=NATIONAL, separateDialCode false", () => {
+    let iti, input;
+    const options = { numberDisplayFormat: "NATIONAL", separateDialCode: false };
+
+    beforeEach(() => {
+      ({ iti, input } = initIntlTelInput({ options }));
+    });
+
+    afterEach(() => teardown(iti));
+
+    test("formats to national", () => {
+      iti.setNumber("+447733123456");
+      expect(input.value).toEqual("07733 123456");
+    });
+  });
+
+  describe("with utils, numberDisplayFormat=INTERNATIONAL (default)", () => {
+    let iti, input;
+    const options = { numberDisplayFormat: "INTERNATIONAL" };
+
+    beforeEach(() => {
+      ({ iti, input } = initIntlTelInput({ options }));
+    });
+
+    afterEach(() => teardown(iti));
+
+    test("formats to intl", () => {
+      iti.setNumber("+447733123456");
+      expect(input.value).toEqual("7733 123456");
+    });
+  });
+});

@@ -1,59 +1,46 @@
-## Contributing
+# Contributing
 
-I'm very open to contributions, big and small! For general instructions on submitting a pull request on GitHub, see these guides: [Fork A Repo](https://help.github.com/articles/fork-a-repo), and [Creating a pull request from a fork](https://help.github.com/articles/creating-a-pull-request-from-a-fork/).
+We're very open to contributions, big and small! For general instructions on submitting a pull request on GitHub, see these guides: [Fork A Repo](https://help.github.com/articles/fork-a-repo) and [Creating a pull request from a fork](https://help.github.com/articles/creating-a-pull-request-from-a-fork/).
 
-### Changes to the plugin
+## Table of Contents
+- [Changes to the core library](#changes-to-the-core-library)
+- [Updating the flag images](#updating-the-flag-images)
+- [Adding a new translation](#adding-a-new-translation)
 
-In order to build the project, you will first need to install [npm](https://www.npmjs.org), and then run `npm install` to install the project's dependencies. At this point, the included `demo.html` should be working, if you open it in your browser. Then you should make your changes in the `src` directory, and be sure to run the build script before committing your changes - see below for more information on this.
+## Changes to the core library
 
-In most cases, you will only need to make changes to the JavaScript, in which case you can just run `npm run build:js` to build the JavaScript before committing.
+### Setup
 
-If you want to make changes to the CSS or the flags sprite, you will need to globally install a package called evenizer with `npm install -g evenizer` and then run `npm run build` to build all of the assets (warning: this can take a while), before committing.
+Once you have [forked the repository](https://help.github.com/articles/fork-a-repo) and checked out your fork on your local machine, you need to initialise the submodules with `git submodule update --init --recursive`, then run `npm install`, and then `npm run build`. You should now be able to open the included demo/index.html in your browser and see it working!
 
-### Updating to a new version of libphonenumber
+### Making changes
 
-#### Step 1: Setup
-(Taken from the [libphonenumber JavaScript setup instructions](https://github.com/google/libphonenumber/blob/master/javascript/README.md))  
-Create a new dir (e.g. ~/workspace/libphonenumber-tools) where you will clone the libphonenumber project and a few other dependencies, and cd into it, and then:
+Any time you make changes, you’ll need to rebuild the core library. You can run `npm run watch` to do this automatically. Else you can manually run one of the build commands below:
 
-```
-git clone https://github.com/google/libphonenumber
-git clone https://github.com/google/closure-library
-git clone https://github.com/google/closure-compiler
-git clone https://github.com/google/closure-linter
-git clone https://github.com/google/python-gflags
-```
+- `npm run build` to build everything (slow)
+  - Builds flag images, translations, CSS, and all of the JS (see below)
+- `npm run build:js` to build all of the JS (slow)
+  - Builds utils script, core library module, TS type declaration files, react/vue/angular/svelte components and demo bundles
+- `npm run build:jsfast` to just build the JS needed for the demo/tests (fast)
+- `npm run build:css` to just build the CSS (fast)
+- And lots more - see [package.json "scripts" section](https://github.com/jackocnr/intl-tel-input/blob/master/package.json#L7-L29) for full list
 
-Build Closure's compiler.jar in closure-compiler directory: `bazelisk build :all` (requires bazelisk to be installed - on MacOS, you can do this with `brew install bazelisk`)
+### Tests
 
-#### Step 2: Updating libphonenumber
+After building all the assets (`npm run build`) you can run `npm test` to run all the tests (Vitest + Playwright). For Playwright, you may also need to install the browsers first with `npx playwright install`.
 
-Simply cd into the libphonenumber dir and checkout the required version tag e.g.
+## Updating the flag images
 
-```
-cd ~/workspace/libphonenumber-tools/libphonenumber
-git checkout v8.9.14
-```
+We get our flags from the [flag-icons](https://github.com/lipis/flag-icons) project. If there is a problem with the flags, you'll need to raise it with them. When there is an update in that project that you want to pull into this project, you can update the npm package with `npm install flag-icons@VERSION --save-dev`, and then rebuild the flag sprite images with `npm run build:img`. Once you've checked everything looks ok (by opening the included demo/index.html in your browser), you can then create a pull request on GitHub. _NOTE: since we removed the build files from the repo, the only changes you will be committing are in package.json and package-lock.json._
 
-Then to build the new version of utils.js:
+## Adding a new translation
 
-1. Copy intl-tel-input/src/js/utils.js to libphonenumber/javascript/i18n/phonenumbers/demo.js
-2. `ant -f libphonenumber/javascript/build.xml compile-demo` (requires ant to be installed - on MacOS, you can do this with `brew install ant`)
-3. Copy libphonenumber/javascript/i18n/phonenumbers/demo-compiled.js to intl-tel-input/build/js/utils.js
+The [provided translations](https://github.com/jackocnr/intl-tel-input/tree/master/packages/core/src/js/locale) cover just the user interface strings (e.g. the country search placeholder, no-results message, and various accessibility labels) — country names are, in most cases, translated automatically using the native `Intl.DisplayNames` API (see the `countryNameLocale` option). So contributing a new locale usually only requires adding a handful of strings — for example, see the [English translations](https://github.com/jackocnr/intl-tel-input/blob/master/packages/core/src/js/locale/en.ts).
 
-Then, back in the intl-tel-input dir, first run the tests to make sure nothing has broken: `npm test`, then just commit the new utils.js, and create a pull request on Github.
+Inside packages/core/src/js/locale/, there is a file for each locale we support (e.g. "en.ts" for English). All you need to do to add a new translation is create a new locale file, named after the relevant [BCP 47 language tag](https://en.wikipedia.org/wiki/IETF_language_tag) (e.g. "de.ts" for German), and populate it with your translation strings, following the same pattern as the other locales, including the header comment (e.g. `//* German. Translated by: Your Name.`). For region-specific variants, append the region subtag with a hyphen (e.g. "zh-hk.ts" for Traditional Chinese as used in Hong Kong).
 
+**Plurals:** the `searchSummaryAria` function must return a grammatically correct string for any count. Many languages have more than two plural forms, so don't just copy the English singular/plural split — check your language's rules (e.g. try `new Intl.PluralRules("xx").select(n)` for various counts), and see [is.ts](https://github.com/jackocnr/intl-tel-input/blob/master/packages/core/src/js/locale/is.ts) or [ru.ts](https://github.com/jackocnr/intl-tel-input/blob/master/packages/core/src/js/locale/ru.ts) for examples.
 
-### Updating the flag images
+**Country names:** Chrome omits the country name data for some locales, silently falling back to English. To check yours, run `new Intl.DisplayNames(["xx"], { type: "region" }).of("DE")` in Chrome's console (replacing `xx` with your language tag). If it returns "Germany", we need to bundle the country names with your locale: add your language tag to the `FALLBACK_LOCALES` list in [scripts/generate-country-names.js](https://github.com/jackocnr/intl-tel-input/blob/master/scripts/generate-country-names.js), and import and export `countryNames` in your locale file (see [bs.ts](https://github.com/jackocnr/intl-tel-input/blob/master/packages/core/src/js/locale/bs.ts) for an example). The country names file itself is generated for you in the next step.
 
-We get our flags from the region-flags project, which in turn pulls them in from Wikipedia. So cd into intl-tel-input/node_modules/region-flags and then do the following:
-
-1. Install some depenencies. On MacOS use brew: `brew install wget dos2unix librsvg optipng`
-2. Run the make-aliases command: `./make-aliases.sh` (Note: I got some "No such file or directory" warnings)
-3. Run the download command: `./download-wp.sh` (Note: this kept freezing for me, so I had to keep doing ctrl+c and then re-running it)
-
-Finally, the last time I did this (October 2018) there was a problem with the Cayman Islands flag (region-flags/png/KY.png) - it should be aprx 1200x600px, like the other flags, but was instead tiny (36x36px), so I replaced it with [the old one from the region-flags repo](https://github.com/behdad/region-flags/blob/gh-pages/png/KY.png).
-
-At this point, you should be good to cd back to the project root directory, and re-build the images with `npm run build:img`, and then check everything looks ok, and create a pull request on Github.
-
-If when building, you get an error in the "exec:evenizer" task, you may need to temporarily increase the ulimit by running this command: `ulimit -S -n 2048`
+If you haven't already, you will need to run `npm install` to install the project dependencies, and then you can run `npm run build:translations` to generate the country names file (if applicable) and automatically add your new locale to the root index.ts file. Once you have tested and confirmed that the new translations are working, you can create a pull request on GitHub.

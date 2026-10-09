@@ -1,0 +1,76 @@
+{
+  "name": "@intl-tel-input/react",
+  "version": "29.5.3",
+  "description": "A React component for intl-tel-input, for entering, formatting, and validating international telephone numbers",
+  "type": "module",
+  "license": "MIT",
+  "author": "Jack O'Connor (http://jackocnr.com)",
+  "main": "./dist/IntlTelInput.js",
+  "types": "./dist/IntlTelInput.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/IntlTelInput.d.ts",
+      "import": "./dist/IntlTelInput.js"
+    },
+    "./with-utils": {
+      "types": "./dist/IntlTelInputWithUtils.d.ts",
+      "import": "./dist/IntlTelInputWithUtils.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      ".": [
+        "dist/IntlTelInput.d.ts"
+      ],
+      "with-utils": [
+        "dist/IntlTelInputWithUtils.d.ts"
+      ]
+    }
+  },
+  "files": [
+    "dist/*",
+    "LICENSE",
+    "package.json",
+    "README.md"
+  ],
+  "dependencies": {
+    "intl-tel-input": "^29.5.3"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jackocnr/intl-tel-input.git",
+    "directory": "packages/react"
+  },
+  "homepage": "https://intl-tel-input.com/docs/react-component",
+  "bugs": "https://github.com/jackocnr/intl-tel-input/issues",
+  "keywords": [
+    "intl-tel-input",
+    "react",
+    "component",
+    "controlled-component",
+    "react-hook-form",
+    "international",
+    "country",
+    "country-picker",
+    "telephone",
+    "phone",
+    "phone-number",
+    "tel",
+    "mobile",
+    "dial-code",
+    "input",
+    "flag",
+    "dropdown",
+    "validation",
+    "libphonenumber",
+    "formatting",
+    "typescript"
+  ]
+}

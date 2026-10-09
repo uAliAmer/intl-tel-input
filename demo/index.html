@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>International Telephone Input</title>
+    <link rel="stylesheet" href="dist/demo.css" />
+    <script src="src/theme.js"></script>
+  </head>
+
+  <body>
+    <h1>International Telephone Input</h1>
+    <form id="form" novalidate>
+      <div class="d-flex align-items-start gap-2">
+        <div>
+          <input id="phone" name="phone" type="tel" class="form-control" required />
+          <div id="error-msg" class="invalid-feedback d-block"></div>
+          <div id="valid-msg" class="valid-feedback d-block"></div>
+        </div>
+        <button class="btn btn-primary" id="btn" type="submit">Validate</button>
+      </div>
+    </form>
+
+    <script src="../packages/core/dist/js/intlTelInputWithUtils.js"></script>
+    <script>
+      const form = document.querySelector("#form");
+      const input = document.querySelector("#phone");
+      const errorMsg = document.querySelector("#error-msg");
+      const validMsg = document.querySelector("#valid-msg");
+
+      const iti = window.intlTelInput(input, {
+        // allowedNumberTypes: ["TOLL_FREE"],
+        // allowNumberExtensions: true,
+        // allowPhonewords: true,
+        // containerClass: "test",
+        // countryNameLocale: "ru",
+        // countryOrder: ["jp", "kr"],
+        // countrySearch: false,
+        // countrySelectorMode: "OFF", // "OFF" / "DROPDOWN" / "FULLSCREEN" / "AUTO"
+        // customPlaceholder: (exampleNumber, selectedCountry) => exampleNumber ? exampleNumber.replace(/\d/g, "X") : "Enter number",
+        // dropdownParent: document.body,
+        // excludeCountries: ["us"],
+        // formatAsYouType: false,
+        // fullscreenParent: document.body,
+        // hiddenInputs: () => ({ phone: "phone_full", country: "country_iso2" }),
+        // initialCountry: "us",
+        // initialCountryLookup: async () => {
+        //   const res = await fetch("https://ipapi.co/json");
+        //   const data = await res.json();
+        //   return data.country_iso2;
+        // },
+        // loadUtils: () => import("/packages/core/dist/js/utils.js"), // leading slash (and http-server) required for this to work in chrome
+        // matchDropdownWidth: false,
+        // numberDisplayFormat: "INTERNATIONAL", // "E164" / "INTERNATIONAL" / "NATIONAL"
+        // onlyCountries: ['us', 'gb', 'ch', 'ca', 'do'],
+        // placeholderNumberPolicy: "OFF",
+        // placeholderNumberType: "MOBILE",
+        searchInputClass: "form-control",
+        // separateDialCode: true,
+        // showFlags: false,
+        // strictMode: true,
+        // strictRejectAnimation: true,
+        // uiTranslations: { searchPlaceholder: "Custom search" },
+      });
+      window.iti = iti; // useful for testing
+
+      const getErrorMessage = (number, errorCode) => {
+        if (!number) {
+          return "Please enter a number";
+        }
+        const { VALIDATION_ERROR } = window.intlTelInput;
+        switch (errorCode) {
+          case VALIDATION_ERROR.INVALID_COUNTRY_CODE: return "Invalid dial code";
+          case VALIDATION_ERROR.TOO_SHORT: return "Too short";
+          case VALIDATION_ERROR.TOO_LONG: return "Too long";
+          default: return "Invalid number";
+        }
+      };
+
+      let showValidation = false;
+      let submitted = false;
+
+      const updateUI = () => {
+        if (!showValidation) {
+          return;
+        }
+
+        const value = input.value.trim();
+        const isValid = Boolean(value) && iti.isValidNumber() === true;
+
+        input.classList.toggle("is-valid", isValid);
+        input.classList.toggle("is-invalid", !isValid);
+
+        if (!isValid) {
+          const errorCode = iti.getValidationError();
+          errorMsg.textContent = getErrorMessage(value, errorCode);
+        } else {
+          errorMsg.textContent = "";
+        }
+
+        const showValid = Boolean(value) && isValid && submitted;
+        validMsg.textContent = showValid ? "Full number: " + iti.getNumber() : "";
+      };
+
+      // on submit: validate (and show "Full number" if valid)
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        showValidation = true;
+        submitted = true;
+        updateUI();
+      });
+
+      // on blur: enable validation UI
+      input.addEventListener("blur", () => {
+        showValidation = true;
+        updateUI();
+      });
+
+      // while typing / changing country: remove submitted state and update validity
+      const handleUserInput = () => {
+        submitted = false;
+        updateUI();
+      };
+
+      input.addEventListener("input", handleUserInput);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,6 @@
+// NOTE: DO NOT IMPORT THIS FILE
+// This file is built by scripts/build-pages.js and output to the tmp dir
+
+export const LOCALE_CODES = JSON.parse('<%= JSON.stringify(locales || []) %>');
+export const UTILS_PATH = "<%= cacheBust('/intl-tel-input/js/utils.js') %>";
+export const LOCALE_DIR_HASH = "<%= getDirHash('/intl-tel-input/js/locale') %>";

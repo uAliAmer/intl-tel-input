@@ -1,0 +1,66 @@
+{
+  "name": "@intl-tel-input/vue",
+  "version": "29.5.3",
+  "description": "A Vue component for intl-tel-input, for entering, formatting, and validating international telephone numbers",
+  "type": "module",
+  "license": "MIT",
+  "author": "Jack O'Connor (http://jackocnr.com)",
+  "main": "./dist/IntlTelInput.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/IntlTelInput.js"
+    },
+    "./with-utils": {
+      "types": "./dist/indexWithUtils.d.ts",
+      "import": "./dist/IntlTelInputWithUtils.js"
+    }
+  },
+  "files": [
+    "dist/*",
+    "LICENSE",
+    "package.json",
+    "README.md"
+  ],
+  "dependencies": {
+    "intl-tel-input": "^29.5.3"
+  },
+  "peerDependencies": {
+    "vue": "^3.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jackocnr/intl-tel-input.git",
+    "directory": "packages/vue"
+  },
+  "homepage": "https://intl-tel-input.com/docs/vue-component",
+  "bugs": "https://github.com/jackocnr/intl-tel-input/issues",
+  "keywords": [
+    "intl-tel-input",
+    "vue",
+    "vue3",
+    "component",
+    "composition-api",
+    "v-model",
+    "international",
+    "country",
+    "country-picker",
+    "telephone",
+    "phone",
+    "phone-number",
+    "tel",
+    "mobile",
+    "dial-code",
+    "input",
+    "flag",
+    "dropdown",
+    "validation",
+    "libphonenumber",
+    "formatting",
+    "typescript"
+  ]
+}

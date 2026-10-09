@@ -1,0 +1,26 @@
+{
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnPaste": false, //* required
+    "editor.formatOnType": false, //* required
+    "editor.formatOnSaveMode": "file", //* required to format on save
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "files.associations": {
+      "LICENSE": "text",
+    },
+    "markdownlint.config": {
+      "blanks-around-headings": false,
+      "blanks-around-lists": false,
+      "ul-style": false,
+      "blanks-around-fences": false,
+      "ol-prefix": false,
+      "no-inline-html": false,
+    },
+    "files.trimTrailingWhitespace": true,
+    "[markdown]": {
+      "files.trimTrailingWhitespace": false
+    },
+    "[javascript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "angular.enable-strict-mode-prompt": false
+}

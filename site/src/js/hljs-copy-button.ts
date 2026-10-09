@@ -1,0 +1,50 @@
+window.hljs.addPlugin({
+  "after:highlightElement": ({ el, text }: { el: HTMLElement; text: string }) => {
+    const pre = el.parentElement;
+    if (!pre || pre.tagName !== "PRE" || pre.querySelector(".hljs-copy-btn")) {
+      return;
+    }
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "hljs-copy-btn";
+    btn.setAttribute("aria-label", "Copy code to clipboard");
+    btn.setAttribute("data-bs-toggle", "tooltip");
+    btn.setAttribute("data-bs-title", "Copy to clipboard");
+    const icon = document.createElement("i");
+    icon.className = "bi bi-clipboard";
+    icon.setAttribute("aria-hidden", "true");
+    btn.appendChild(icon);
+
+    const tooltip = new window.bootstrap.Tooltip(btn);
+    const setTooltip = (title: string) => {
+      tooltip.setContent({ ".tooltip-inner": title });
+    };
+
+    const resetToIdle = () => {
+      icon.className = "bi bi-clipboard";
+      setTooltip("Copy to clipboard");
+    };
+
+    btn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(text);
+        icon.className = "bi bi-check-lg";
+        setTooltip("Copied!");
+      } catch {
+        icon.className = "bi bi-x-lg";
+        setTooltip("Copy failed");
+      }
+      // Clicking focuses the button, and the tooltip's default trigger
+      // ("hover focus") would then keep it open even after the cursor leaves.
+      // Drop focus so only hover governs visibility from here on.
+      btn.blur();
+      setTimeout(() => {
+        resetToIdle();
+        if (!btn.matches(":hover")) {
+          tooltip.hide();
+        }
+      }, 3000);
+    });
+    pre.appendChild(btn);
+  },
+});

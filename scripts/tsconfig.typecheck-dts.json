@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2022",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "skipLibCheck": false,
+    "noEmit": true,
+    "types": [],
+    "lib": ["ES2022", "DOM"],
+    "paths": {
+      "intl-tel-input": ["../packages/core/dist/js/intlTelInput.d.ts"],
+      "intl-tel-input/utils": ["../packages/core/dist/js/utils.d.ts"],
+      "intl-tel-input/data": ["../packages/core/dist/js/data.d.ts"],
+      "intl-tel-input/locale": ["../packages/core/dist/js/locale.d.ts"],
+      "intl-tel-input/locale/*": ["../packages/core/dist/js/locale.d.ts"],
+      "intl-tel-input/styles": ["../packages/core/dist/css/styles.d.ts"]
+    }
+  },
+  "include": ["typecheck-dts.ts"]
+}

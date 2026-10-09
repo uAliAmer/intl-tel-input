@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <%= common_meta_tags %>
+    <title><%= playgroundTitle %></title>
+    <link rel="canonical" href="<%= playgroundCanonicalUrl %>" />
+    <meta name="description" content="<%= playgroundMetaDesc %>" />
+
+    <%= og_meta_tags %>
+    <%= common_styles %>
+    <link rel="stylesheet" href="<%= cacheBust('/css/playground.css') %>" />
+
+    <%= common_head_end_prod %>
+  </head>
+
+  <body class="iti-page iti-page--playground">
+    <%= layout %>
+    <%= common_body_end %>
+    <%= iti_script %>
+    <script src="<%= cacheBust('/js/playground.js') %>"></script>
+    <%= iti_live_results_script %>
+  </body>
+</html>

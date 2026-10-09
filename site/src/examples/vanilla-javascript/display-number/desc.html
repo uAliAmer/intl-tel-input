@@ -1,0 +1,7 @@
+<p>When you want to display a user's number back to them, set the input's value to the full international number before you initialise the library. The library will automatically select the relevant flag and reformat the number.</p>
+
+<p>Note: reformatting the number this way requires the <a href="/docs/utils#loading-the-utils-script">utils script to be loaded</a>. The utils script is a custom build of Google's libphonenumber library, which we use for all formatting, validation, and placeholder generation.</p>
+
+<p>Play with the various library options on an input containing a number in the <a href="/playground?value=%2B447947123123#input-attributes">Playground</a>.</p>
+
+<p>Note: the toast shown when input is rejected isn't part of the library — see the <a href="/docs/vanilla-javascript#strict-reject"><code>strict:reject</code></a> event docs for an example of how to wire one up yourself.</p>

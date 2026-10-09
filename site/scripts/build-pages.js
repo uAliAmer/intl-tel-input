@@ -1,0 +1,1146 @@
+// Renders every HTML page (homepage, playground, 404, examples, docs) plus
+// the various intermediate template files (CSS cache-bust, JS bundles,
+// iti_script). Uses lodash.template.
+import fs from "node:fs";
+import path from "node:path";
+import { renderPage, renderString } from "./template/render.js";
+import {
+  cacheBust,
+  getDirHash,
+  getLocales,
+  buildOpenGraphMetaTags,
+  createMarkdownRenderer,
+} from "./template/utils.js";
+import { docsDropdownPages, examplesDropdownSections } from "./template/nav.js";
+import {
+  readCommonPagePartials,
+  readCommonBodyEndScript,
+  readItiLiveResultsScript,
+  readItiScript,
+  readNavPartials,
+} from "./template/helpers.js";
+import {
+  renderPlaygroundPresetsHomepage,
+  renderPlaygroundPresetsPlayground,
+} from "../src/shared/playground_presets.js";
+import {
+  deriveNotesFromCode,
+  renderNotesHtml,
+  renderPlaygroundNotesHtml,
+} from "../src/shared/notes.js";
+
+// Always run from the site/ directory so all relative paths in templates and
+// data functions resolve correctly (templates use paths like "src/...",
+// "tmp/...", "dist/..." that assume cwd === site).
+process.chdir(path.resolve(import.meta.dirname, ".."));
+
+// CLI args ----------------------------------------------------------------
+
+const args = process.argv.slice(2);
+const env = (args.find((a) => a.startsWith("--env=")) || "--env=dev").slice(6);
+const isDevBuild = env === "dev" || env === "development";
+const taskFilter = (args.find((a) => a.startsWith("--task=")) || "").slice(7);
+
+const md = createMarkdownRenderer();
+
+const allowedNumberTypesNote = fs.readFileSync(
+  "src/examples/_shared/allowed_number_types_note.html",
+  "utf8",
+);
+
+const strictRejectToastPartial = fs.readFileSync(
+  "src/examples/vanilla-javascript/_shared/strict_reject_toast.html",
+  "utf8",
+);
+const strictRejectToast = (id) =>
+  renderString(strictRejectToastPartial, { id });
+
+// Local helper used by the localisation doc page only.
+const toBcp47LanguageTag = (code) => {
+  const raw = String(code || "").trim();
+  if (!raw) {
+    return "";
+  }
+  const parts = raw.split("-");
+  if (parts.length === 1) {
+    return parts[0].toLowerCase();
+  }
+  const [lang, region, ...rest] = parts;
+  const normLang = String(lang).toLowerCase();
+  const normRegion =
+    region && region.length === 2
+      ? String(region).toUpperCase()
+      : String(region || "");
+  return [normLang, normRegion, ...rest].filter(Boolean).join("-");
+};
+
+const escapeHtml = (value) =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+// Decode the handful of HTML entities markdown-it can emit inside a heading.
+// `&amp;` must go last so we don't double-decode sequences like `&amp;lt;`.
+const decodeHtmlEntities = (value) =>
+  String(value ?? "")
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&");
+
+const createLocaleListText = (languageCodes) => {
+  const codes = Array.isArray(languageCodes)
+    ? languageCodes.filter(Boolean)
+    : [];
+  if (!codes.length) {
+    return "_No language modules found._";
+  }
+
+  let displayNames = null;
+  try {
+    if (typeof Intl !== "undefined" && Intl.DisplayNames) {
+      displayNames = new Intl.DisplayNames(["en"], { type: "language" });
+    }
+  } catch {
+    displayNames = null;
+  }
+
+  const items = codes.map((code) => {
+    const tag = toBcp47LanguageTag(code);
+    let label = null;
+    try {
+      label = displayNames && tag ? displayNames.of(tag) : null;
+    } catch {
+      label = null;
+    }
+    return { code: String(code), label: label ? String(label) : "" };
+  });
+
+  items.sort((a, b) => {
+    const aKey = a.label || a.code;
+    const bKey = b.label || b.code;
+    return aKey.localeCompare(bKey, "en", { sensitivity: "base" });
+  });
+
+  const listItems = items
+    .map(({ code, label }) => {
+      const text = escapeHtml(label ? `${label} (${code})` : code);
+      return `  <li class="iti-locale-list__item">${text}</li>`;
+    })
+    .join("\n");
+  return `<ul class="iti-locale-list">\n${listItems}\n</ul>`;
+};
+
+// Page metadata constants -------------------------------------------------
+
+const homepageTitle = "International Telephone Input";
+const homepageMetaDesc =
+  "For entering, formatting, and validating international telephone numbers. Available in vanilla JavaScript, or as React, Vue, Angular, and Svelte components.";
+const homepageCanonicalUrl = "https://intl-tel-input.com";
+
+const playgroundTitle = "Playground - International Telephone Input";
+const playgroundMetaDesc =
+  "Try different initialisation options and see intl-tel-input update live.";
+const playgroundCanonicalUrl = "https://intl-tel-input.com/playground";
+
+const notFoundTitle = "404 - Page not found | intl-tel-input";
+const notFoundMetaDesc = "Page not found.";
+const notFoundCanonicalUrl = "https://intl-tel-input.com/404";
+
+const tocHeadingHtml =
+  '<h6 class="mt-4 mb-2 text-uppercase iti-nav-heading">On this page</h6>';
+
+const renderTocLink = (id, label) =>
+  `<a href="#${id}">${escapeHtml(label)}</a>`;
+
+// Build the right-sidebar "On this page" block from a list of {id, label} items.
+const buildContentsSidebar = (items) => {
+  if (!items || !items.length) {
+    return "";
+  }
+  const lis = items
+    .map(({ id, label }) => `<li>${renderTocLink(id, label)}</li>`)
+    .join("");
+  return `${tocHeadingHtml}<ul class="iti-toc">${lis}</ul>`;
+};
+
+// Scan rendered docs HTML for all section headings (<h2>–<h6>) with IDs and
+// return them as {level, id, label} items for the right-sidebar TOC. Strips
+// inner HTML tags (markdown-it-anchor wraps the heading text in an anchor
+// span) to recover the plain-text label.
+const extractDocsHeadings = (html) => {
+  const headings = [];
+  const re = /<h([2-6])\s+id="([^"]+)"[^>]*>([\s\S]*?)<\/h\1>/g;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    const level = Number(m[1]);
+    const id = m[2];
+    // Strip nested tags (markdown-it-anchor wraps the heading text in an
+    // anchor span) AND decode entities so renderTocLink's escapeHtml() doesn't
+    // double-encode them (e.g. `Foo & Bar` would otherwise render as `Foo &amp; Bar`).
+    const label = decodeHtmlEntities(m[3].replace(/<[^>]+>/g, "")).trim();
+    if (id && label) {
+      headings.push({ level, id, label });
+    }
+  }
+  return headings;
+};
+
+// Build a nested <ul> tree for the docs right-sidebar TOC from a flat list of
+// {level, id, label} headings. Headings are nested based on their relative
+// levels: each heading deeper than the current open level opens a new nested
+// <ul>; siblings at the same level share a parent <ul>. Skipped levels (e.g.
+// h2 -> h6 with no h3/h4/h5 in between) collapse to a single nesting step, so
+// "deepest in the source so far" is what matters, not absolute heading level.
+const buildDocsContentsSidebar = (items) => {
+  if (!items.length) {
+    return "";
+  }
+  let html = "";
+  const stack = [];
+  for (const item of items) {
+    while (stack.length && stack[stack.length - 1] > item.level) {
+      html += "</li></ul>";
+      stack.pop();
+    }
+    if (stack.length && stack[stack.length - 1] === item.level) {
+      html += "</li>";
+    } else {
+      const cls = stack.length === 0 ? ' class="iti-toc"' : "";
+      html += `<ul${cls}>`;
+      stack.push(item.level);
+    }
+    html += `<li>${renderTocLink(item.id, item.label)}`;
+  }
+  while (stack.length) {
+    html += "</li></ul>";
+    stack.pop();
+  }
+  return `${tocHeadingHtml}${html}`;
+};
+
+// Cache-bust task helper: in-place template substitution on a built CSS file.
+const cssCacheBust = (key, file) => ({
+  name: key,
+  src: file,
+  dest: file,
+  data: () => ({ cacheBust }),
+});
+
+// Tasks definition --------------------------------------------------------
+//
+// Each entry is { name, src, dest, data }. Order matters because some tasks
+// read files produced by earlier tasks. They are grouped here in execution order.
+
+const tasks = [];
+
+// 1. iti_script — used by many other pages.
+tasks.push({
+  name: "iti_script",
+  src: "src/shared/iti_script.html.ejs",
+  dest: "tmp/shared/iti_script.html",
+  data: () => ({ cacheBust, isDevBuild }),
+});
+
+// 2. Cache bust any URLs inside CSS files
+// e.g. url("<%= cacheBust('flags.webp') %>") → url("flags.webp?v=HASH")
+tasks.push(cssCacheBust("website_css", "dist/css/website.css"));
+tasks.push(cssCacheBust("homepage_css", "dist/css/homepage.css"));
+tasks.push(cssCacheBust("docs_css", "dist/css/docs.css"));
+tasks.push(cssCacheBust("playground_css", "dist/css/playground.css"));
+tasks.push(
+  cssCacheBust(
+    "large_flags_overrides_css",
+    "dist/css/large_flags_overrides.css",
+  ),
+);
+
+// Shared "Notes" callouts are auto-derived from each page's display code at
+// render time (see deriveNotesFromCode usage below), and the Playground
+// renders the same set via a placeholder in playground_content.html. The note
+// copy itself lives in src/shared/notes.js so both pipelines stay in sync.
+
+// 3. Static "JS template" tasks — used as inputs to esbuild / vite.
+//    Defined here so they can be invoked individually via --task=NAME from
+//    npm scripts that need them before bundling (build:esbuild, build:vue,
+//    build:svelte).
+const exampleDefinitions = [
+  {
+    key: "lookup_country",
+    integrationSlug: "vanilla-javascript",
+    exampleSlug: "lookup-country",
+    title: "Lookup user's country",
+    metaDesc: "Automatically set the country based on the user's IP address.",
+    js: { destDir: "tmp" },
+    content: {
+      markupName: "simple_input",
+      includeItiScript: true,
+    },
+  },
+  {
+    key: "right_to_left",
+    integrationSlug: "vanilla-javascript",
+    exampleSlug: "right-to-left",
+    title: "Right to left",
+    metaDesc: "Support for right-to-left languages.",
+    js: { destDir: "tmp", script: "right_to_left_bundle.js" },
+    content: {
+      markupName: "simple_input",
+      isRtl: true,
+    },
+    layoutExtra: { isRtl: true },
+  },
+  {
+    key: "single_country",
+    integrationSlug: "vanilla-javascript",
+    exampleSlug: "single-country",
+    title: "Single country",
+    metaDesc: "When you only need to handle numbers from a single country.",
+    js: { destDir: "tmp" },
+    content: {
+      demo_note: allowedNumberTypesNote,
+      includeItiScript: true,
+      displayCodeMinimal: "src/examples/vanilla-javascript/single-country/display_code_minimal.js",
+    },
+  },
+  {
+    key: "validation_practical",
+    integrationSlug: "vanilla-javascript",
+    exampleSlug: "validation",
+    title: "Validation",
+    metaDesc:
+      "Validate the user's phone number and if there's an error, display a relevant message.",
+    js: { destDir: "tmp" },
+    content: {
+      markupName: "validation",
+      includeItiScript: true,
+      displayCodeMinimal: "src/examples/vanilla-javascript/validation/display_code_minimal.js",
+      extraData: () => ({
+        demo_note: allowedNumberTypesNote,
+      }),
+    },
+  },
+  {
+    key: "validation_precise",
+    integrationSlug: "vanilla-javascript",
+    exampleSlug: "validation-precise",
+    title: "Precise validation (advanced)",
+    metaDesc:
+      "Validate the user's phone number using the more precise method, and if there's an error, display a relevant message.",
+    js: { src: "src/examples/vanilla-javascript/validation/page.ts", destDir: "tmp" },
+    content: {
+      markupName: "validation",
+      includeItiScript: true,
+      displayCode: "src/examples/vanilla-javascript/validation/display_code.js",
+      displayCodeMinimal: "src/examples/vanilla-javascript/validation/display_code_minimal.js",
+      extraData: () => ({
+        demo_note: allowedNumberTypesNote,
+      }),
+    },
+  },
+  {
+    key: "hidden_input",
+    integrationSlug: "vanilla-javascript",
+    exampleSlug: "hidden-input",
+    title: "Hidden input",
+    metaDesc:
+      "Automatically populate a hidden input with the full international number, so it gets submitted to your backend.",
+    js: { destDir: "tmp" },
+    content: {
+      demo_note: allowedNumberTypesNote,
+      includeItiScript: true,
+      markupName: "validation",
+      displayCodeMinimal: "src/examples/vanilla-javascript/hidden-input/display_code_minimal.js",
+    },
+  },
+  {
+    key: "multiple_instances",
+    integrationSlug: "vanilla-javascript",
+    exampleSlug: "multiple-instances",
+    title: "Multiple instances",
+    metaDesc:
+      "Use multiple instances of intl-tel-input with different configurations on the same page.",
+    js: { destDir: "tmp" },
+    content: {
+      includeItiScript: true,
+    },
+  },
+  {
+    key: "display_number",
+    integrationSlug: "vanilla-javascript",
+    exampleSlug: "display-number",
+    title: "Display existing number",
+    metaDesc: "Automatically format an existing number during initialisation.",
+    js: { destDir: "tmp" },
+    content: {
+      includeItiScript: true,
+    },
+  },
+  {
+    key: "large_flags",
+    integrationSlug: "vanilla-javascript",
+    exampleSlug: "large-flags",
+    title: "Large flags",
+    metaDesc: "How to display extra large flag images.",
+    js: { destDir: "tmp" },
+    content: {
+      markupName: "simple_input",
+      includeItiScript: true,
+    },
+    pageExtra: { iti_styles: "largeFlags" },
+  },
+  {
+    key: "angular_component",
+    integrationSlug: "angular-component",
+    exampleSlug: "validation",
+    title: "Validation",
+    metaDesc: "How to use intl-tel-input with Angular.",
+    js: {
+      src: "src/examples/angular-component/validation/component.ts",
+      destDir: "tmp",
+      script: "angular_component_bundle.js",
+    },
+    content: {
+      demo_note: allowedNumberTypesNote,
+      hideMarkupSection: true,
+      script: "angular_component_bundle.js",
+    },
+  },
+  {
+    key: "angular_display_existing_number",
+    integrationSlug: "angular-component",
+    exampleSlug: "display-existing-number",
+    title: "Display existing number",
+    metaDesc: "Automatically format an existing number when rendering the Angular component.",
+    js: {
+      src: "src/examples/angular-component/display-existing-number/component.ts",
+      destDir: "tmp",
+      script: "angular_display_existing_number_bundle.js",
+    },
+    content: {
+      hideMarkupSection: true,
+      script: "angular_display_existing_number_bundle.js",
+    },
+  },
+  {
+    key: "react_component",
+    integrationSlug: "react-component",
+    exampleSlug: "validation",
+    title: "Validation",
+    metaDesc: "How to use intl-tel-input with React.",
+    js: {
+      src: "src/examples/react-component/validation/component.tsx",
+      destDir: "tmp",
+      script: "react_component_bundle.js",
+    },
+    content: {
+      demo_note: allowedNumberTypesNote,
+      hideMarkupSection: true,
+      script: "react_component_bundle.js",
+    },
+  },
+  {
+    key: "react_hook_form",
+    integrationSlug: "react-component",
+    exampleSlug: "react-hook-form",
+    title: "React Hook Form",
+    metaDesc: "How to integrate intl-tel-input with React Hook Form.",
+    js: {
+      src: "src/examples/react-component/react-hook-form/component.tsx",
+      destDir: "tmp",
+      script: "react_hook_form_bundle.js",
+    },
+    content: {
+      demo_note: allowedNumberTypesNote,
+      hideMarkupSection: true,
+      script: "react_hook_form_bundle.js",
+    },
+  },
+  {
+    key: "react_display_existing_number",
+    integrationSlug: "react-component",
+    exampleSlug: "display-existing-number",
+    title: "Display existing number",
+    metaDesc: "Automatically format an existing number when rendering the React component.",
+    js: {
+      src: "src/examples/react-component/display-existing-number/component.tsx",
+      destDir: "tmp",
+      script: "react_display_existing_number_bundle.js",
+    },
+    content: {
+      hideMarkupSection: true,
+      script: "react_display_existing_number_bundle.js",
+    },
+  },
+  {
+    key: "vue_component",
+    integrationSlug: "vue-component",
+    exampleSlug: "validation",
+    title: "Validation",
+    metaDesc: "How to use intl-tel-input with Vue.",
+    js: {
+      src: "src/examples/vue-component/validation/component.vue",
+      destDir: "tmp",
+      script: "vue_component_bundle.js",
+    },
+    content: {
+      demo_note: allowedNumberTypesNote,
+      hideMarkupSection: true,
+      script: "vue_component_bundle.js",
+    },
+  },
+  {
+    key: "vue_display_existing_number",
+    integrationSlug: "vue-component",
+    exampleSlug: "display-existing-number",
+    title: "Display existing number",
+    metaDesc: "Automatically format an existing number when rendering the Vue component.",
+    js: {
+      src: "src/examples/vue-component/display-existing-number/component.vue",
+      destDir: "tmp",
+      script: "vue_display_existing_number_bundle.js",
+    },
+    content: {
+      hideMarkupSection: true,
+      script: "vue_display_existing_number_bundle.js",
+    },
+  },
+  {
+    key: "svelte_component",
+    integrationSlug: "svelte-component",
+    exampleSlug: "validation",
+    title: "Validation",
+    metaDesc: "How to use intl-tel-input with Svelte.",
+    js: {
+      src: "src/examples/svelte-component/validation/component.svelte",
+      destDir: "tmp",
+      script: "svelte_component_bundle.js",
+    },
+    content: {
+      demo_note: allowedNumberTypesNote,
+      hideMarkupSection: true,
+      script: "svelte_component_bundle.js",
+    },
+  },
+  {
+    key: "svelte_display_existing_number",
+    integrationSlug: "svelte-component",
+    exampleSlug: "display-existing-number",
+    title: "Display existing number",
+    metaDesc: "Automatically format an existing number when rendering the Svelte component.",
+    js: {
+      src: "src/examples/svelte-component/display-existing-number/component.svelte",
+      destDir: "tmp",
+      script: "svelte_display_existing_number_bundle.js",
+    },
+    content: {
+      hideMarkupSection: true,
+      script: "svelte_display_existing_number_bundle.js",
+    },
+  },
+];
+
+const integrationLabels = {
+  "vanilla-javascript": "Vanilla JavaScript",
+  "react-component": "React component",
+  "vue-component": "Vue component",
+  "angular-component": "Angular component",
+  "svelte-component": "Svelte component",
+};
+
+// For each example, push: js, content, layout, page tasks (in that order).
+for (const def of exampleDefinitions) {
+  const {
+    key,
+    integrationSlug,
+    exampleSlug,
+    title,
+    metaDesc,
+    js = {},
+    content = {},
+    layoutExtra = {},
+    pageExtra = {},
+  } = def;
+  const urlPath = `${integrationSlug}/${exampleSlug}`;
+  const integrationLabel = integrationLabels[integrationSlug];
+  const exampleDir = `src/examples/${integrationSlug}/${exampleSlug}`;
+  const jsSrc = js.src || `${exampleDir}/page.ts`;
+  // For tmp/ destinations the file is consumed by esbuild/vite, which handles
+  // .ts/.tsx/.vue/.svelte natively — preserve the source basename so the
+  // bundler reads the right loader and the templated copy ends up at the same
+  // relative depth as the source (so relative imports inside it resolve to the
+  // same files from either location).
+  // For dist/ destinations the file is served to the browser as-is, so the
+  // extension is forced to .js (and TypeScript types are stripped at render time).
+  const destDir = js.destDir || "dist";
+  const jsExt = destDir === "tmp" && jsSrc.endsWith(".ts") ? ".ts" : ".js";
+  const jsDest = js.dest || (destDir === "tmp"
+    ? `tmp/examples/${integrationSlug}/${exampleSlug}/${path.basename(jsSrc)}`
+    : `${destDir}/examples/js/${key}${jsExt}`);
+  const srcExt = path.extname(jsSrc);
+  const displayCodeExt = [".vue", ".svelte"].includes(srcExt) ? srcExt : ".js";
+  const displayCode =
+    content.displayCode || `${exampleDir}/display_code${displayCodeExt}`;
+  const scriptName = js.script || `${key}.js`;
+
+  const contentDest = content.dest || `tmp/examples/${key}_content.html`;
+  const layoutDest = content.layoutDest || `tmp/examples/${key}_layout.html`;
+  const pageDest = content.pageDest || `dist/examples/${urlPath}.html`;
+
+  // Markup: shared (when markupName is set) lives in this integration's
+  // _shared/ dir; otherwise it's per-example at markup.html.
+  const markupPath = content.markupName
+    ? `src/examples/${integrationSlug}/_shared/${content.markupName}.html`
+    : `${exampleDir}/markup.html`;
+  const displayMarkupCandidate = content.markupName
+    ? `src/examples/${integrationSlug}/_shared/${content.markupName}_display_code.html`
+    : `${exampleDir}/markup_display.html`;
+  const displayMarkupPath = fs.existsSync(displayMarkupCandidate)
+    ? displayMarkupCandidate
+    : markupPath;
+
+  const fullTitle = `${title} - ${integrationLabel} example - International Telephone Input`;
+  const canonicalUrl = `https://intl-tel-input.com/examples/${urlPath}`;
+
+  const templateData = { cacheBust, ...(js.data || {}) };
+
+  // 3a. Per-example JS template task — renders source through lodash before
+  // the bundler picks it up. Used by build:esbuild / build:vue / build:svelte.
+  tasks.push({
+    name: `${key}_js`,
+    src: jsSrc,
+    dest: jsDest,
+    data: () => templateData,
+  });
+
+  // 4. Example content (read markup, demo code, etc).
+  tasks.push({
+    name: `${key}_content`,
+    src: "src/examples/_templates/content.html.ejs",
+    dest: contentDest,
+    data: () => {
+      // hack so that the validation_precise example page shows the right
+      // validation method in the displayed code
+      const applyPreciseHack = (code) =>
+        key === "validation_precise"
+          ? code.replace(/\biti\.isValidNumber\(\)/g, "iti.isValidNumberPrecise()")
+          : code;
+
+      const renderedDisplayCode = renderString(
+        applyPreciseHack(fs.readFileSync(displayCode, "utf8")),
+        templateData,
+      );
+      const renderedDisplayCodeMinimal = content.displayCodeMinimal
+        ? renderString(
+            applyPreciseHack(fs.readFileSync(content.displayCodeMinimal, "utf8")),
+            templateData,
+          )
+        : null;
+      const notes = deriveNotesFromCode(renderedDisplayCode);
+      const displayCodeLanguage = [".vue", ".svelte"].includes(displayCodeExt)
+        ? "html"
+        : "javascript";
+      return {
+        cacheBust,
+        content_title: title,
+        integration_label: integrationLabel,
+        desc: fs.readFileSync(`${exampleDir}/desc.html`, "utf8"),
+        markup: renderString(fs.readFileSync(markupPath, "utf8"), {
+          strictRejectToast,
+        }),
+        display_markup: fs.readFileSync(displayMarkupPath, "utf8"),
+        display_code: renderedDisplayCode,
+        display_code_language: displayCodeLanguage,
+        ...(renderedDisplayCodeMinimal
+          ? { display_code_minimal: renderedDisplayCodeMinimal }
+          : {}),
+        script: scriptName,
+        ...(content.demo_note ? { demo_note: content.demo_note } : {}),
+        ...(content.hideMarkupSection ? { hideMarkupSection: true } : {}),
+        ...(content.isRtl ? { isRtl: true } : {}),
+        ...(notes.length ? { notesHtml: renderNotesHtml(notes) } : {}),
+        ...(content.extraData ? content.extraData() : {}),
+        common_body_end: readCommonBodyEndScript(),
+        ...(content.includeItiScript ? { iti_script: readItiScript() } : {}),
+      };
+    },
+  });
+
+  // 5. Example layout (wraps content in src/layout_template.html.ejs).
+  const tocItems = [
+    { id: "overview", label: "Overview" },
+    { id: "demo", label: "Demo" },
+    ...(content.hideMarkupSection ? [] : [{ id: "html", label: "Html" }]),
+    { id: "javascript", label: "JavaScript" },
+  ];
+  tasks.push({
+    name: `${key}_layout`,
+    src: "src/layout_template.html.ejs",
+    dest: layoutDest,
+    data: () =>
+      ({
+        showLeftSidebar: true,
+        layoutClass: "iti-layout-both-sidebars",
+        nav: fs.readFileSync("src/examples/_templates/nav.html.ejs", "utf8"),
+        right_sidebar: buildContentsSidebar(tocItems),
+        content: fs.readFileSync(contentDest, "utf8"),
+        name: key,
+        pageType: "examples",
+        docsDropdownPages,
+        examplesDropdownSections,
+        ...readNavPartials({
+          pageType: "examples",
+          name: key,
+          docsDropdownPages,
+          examplesDropdownSections,
+        }),
+        ...layoutExtra,
+      }),
+  });
+
+  // 6. Example page (wraps layout in the page template).
+  tasks.push({
+    name: `${key}_page`,
+    src: "src/examples/_templates/page.html.ejs",
+    dest: pageDest,
+    data: () => ({
+      cacheBust,
+      head_title: fullTitle,
+      canonical_url: canonicalUrl,
+      meta_desc: metaDesc,
+      og_meta_tags: buildOpenGraphMetaTags({
+        title: fullTitle,
+        description: metaDesc,
+        url: canonicalUrl,
+      }),
+      ...readCommonPagePartials({
+        cacheBust,
+        isDevBuild,
+        iti_styles: pageExtra.iti_styles || "normal",
+        highlightjs_styles: true,
+      }),
+      content: fs.readFileSync(layoutDest, "utf8"),
+      ...pageExtra,
+    }),
+  });
+}
+
+// 7. Static "page wrapper" pages: homepage, playground, 404.
+
+// playground_js — runs alongside the example *_js tasks (early), since
+// the bundler reads it.
+tasks.push({
+  name: "playground_js",
+  src: "src/playground/js/templates/playgroundConstants.js.ejs",
+  dest: "tmp/playground/playgroundConstants.js",
+  data: () => ({
+    cacheBust,
+    getDirHash,
+    locales: getLocales(),
+  }),
+});
+
+// homepage_js — templates cacheBust() tokens in homepage.ts into tmp/ where
+// esbuild picks it up. Same pattern as the example *_js tasks.
+tasks.push({
+  name: "homepage_js",
+  src: "src/js/homepage.ts",
+  dest: "tmp/js/homepage.ts",
+  data: () => ({ cacheBust }),
+});
+
+// strict_reject_toast_js — shared helper imported by homepage and the vanilla
+// example pages. Copied through tmp/ so esbuild can resolve the import from
+// the templated entry points that live under tmp/.
+tasks.push({
+  name: "strict_reject_toast_js",
+  src: "src/js/strictRejectToast.ts",
+  dest: "tmp/js/strictRejectToast.ts",
+  data: () => ({}),
+});
+
+// get_error_message_js — shared helper for the validation examples (vanilla +
+// frameworks bundled through tmp/). Same copy-through-tmp pattern as above.
+tasks.push({
+  name: "get_error_message_js",
+  src: "src/js/getErrorMessage.ts",
+  dest: "tmp/js/getErrorMessage.ts",
+  data: () => ({}),
+});
+
+// initial_country_lookup_js — shared initialCountryLookup helper. Same copy-through-tmp pattern.
+tasks.push({
+  name: "initial_country_lookup_js",
+  src: "src/js/initialCountryLookup.ts",
+  dest: "tmp/js/initialCountryLookup.ts",
+  data: () => ({}),
+});
+
+// homepage
+tasks.push({
+  name: "homepage_layout",
+  src: "src/layout_template.html.ejs",
+  dest: "tmp/homepage/homepage_layout.html",
+  data: () => {
+    const stats = JSON.parse(fs.readFileSync("tmp/stats.json", "utf8"));
+    const content = fs
+      .readFileSync("src/homepage/homepage_content.html", "utf8")
+      .replace("{{STAT_WEBSITES}}", stats.websites)
+      .replace("{{STAT_DOWNLOADS}}", stats.downloads)
+      .replace("{{STAT_STARS}}", stats.stars)
+      .replace("{{STAT_LOCALES}}", getLocales().length)
+      .replace("{{PLAYGROUND_PRESETS}}", renderPlaygroundPresetsHomepage());
+    return {
+      layoutClass: "iti-layout-no-sidebars",
+      showLeftSidebar: false,
+      content,
+      name: "home",
+      pageType: "home",
+      docsDropdownPages,
+      examplesDropdownSections,
+      ...readNavPartials({
+        pageType: "home",
+        name: "home",
+        docsDropdownPages,
+        examplesDropdownSections,
+      }),
+    };
+  },
+});
+
+tasks.push({
+  name: "homepage_page",
+  src: "src/homepage/homepage_page_template.html.ejs",
+  dest: "dist/index.html",
+  data: () => ({
+    homepageTitle,
+    homepageMetaDesc,
+    homepageCanonicalUrl,
+    cacheBust,
+    isDevBuild,
+    ...readCommonPagePartials({
+      cacheBust,
+      isDevBuild,
+      iti_styles: "homepage",
+    }),
+    og_meta_tags: buildOpenGraphMetaTags({
+      title: homepageTitle,
+      description: homepageMetaDesc,
+      url: homepageCanonicalUrl,
+    }),
+    layout: fs.readFileSync("tmp/homepage/homepage_layout.html", "utf8"),
+    common_body_end: readCommonBodyEndScript(),
+    iti_live_results_script: readItiLiveResultsScript({ cacheBust }),
+    iti_script: readItiScript(),
+  }),
+});
+
+// playground
+tasks.push({
+  name: "playground_layout",
+  src: "src/layout_template.html.ejs",
+  dest: "tmp/playground/playground_layout.html",
+  data: () => ({
+    showLeftSidebar: false,
+    layoutClass: "iti-layout-no-sidebars iti-layout--playground",
+    content: fs
+      .readFileSync("src/playground/playground_content.html", "utf8")
+      .replace("{{PLAYGROUND_PRESETS}}", renderPlaygroundPresetsPlayground())
+      .replace(
+        "{{PLAYGROUND_NOTES}}",
+        renderPlaygroundNotesHtml(["initialCountryLookup"]),
+      ),
+    pageType: "playground",
+    name: "playground",
+    docsDropdownPages,
+    examplesDropdownSections,
+    ...readNavPartials({
+      pageType: "playground",
+      name: "playground",
+      docsDropdownPages,
+      examplesDropdownSections,
+    }),
+  }),
+});
+
+tasks.push({
+  name: "playground_page",
+  src: "src/playground/playground_page_template.html.ejs",
+  dest: "dist/playground.html",
+  data: () => ({
+    playgroundTitle,
+    playgroundMetaDesc,
+    playgroundCanonicalUrl,
+    cacheBust,
+    ...readCommonPagePartials({
+      cacheBust,
+      isDevBuild,
+      iti_styles: "normal",
+      highlightjs_styles: true,
+    }),
+    og_meta_tags: buildOpenGraphMetaTags({
+      title: playgroundTitle,
+      description: playgroundMetaDesc,
+      url: playgroundCanonicalUrl,
+    }),
+    layout: fs.readFileSync("tmp/playground/playground_layout.html", "utf8"),
+    common_body_end: readCommonBodyEndScript(),
+    iti_live_results_script: readItiLiveResultsScript({ cacheBust }),
+    iti_script: readItiScript(),
+  }),
+});
+
+// 404
+tasks.push({
+  name: "not_found_layout",
+  src: "src/layout_template.html.ejs",
+  dest: "tmp/404/not_found_layout.html",
+  data: () => ({
+    showLeftSidebar: false,
+    layoutClass: "iti-layout-no-sidebars",
+    content: fs.readFileSync("src/404/404_content.html", "utf8"),
+    pageType: "home",
+    name: "404",
+    docsDropdownPages,
+    examplesDropdownSections,
+    ...readNavPartials({
+      pageType: "home",
+      name: "404",
+      docsDropdownPages,
+      examplesDropdownSections,
+    }),
+  }),
+});
+
+tasks.push({
+  name: "not_found_page",
+  src: "src/404/404_page_template.html.ejs",
+  dest: "dist/404.html",
+  data: () => ({
+    cacheBust,
+    head_title: notFoundTitle,
+    canonical_url: notFoundCanonicalUrl,
+    meta_desc: notFoundMetaDesc,
+    og_meta_tags: buildOpenGraphMetaTags({
+      title: notFoundTitle,
+      description: notFoundMetaDesc,
+      url: notFoundCanonicalUrl,
+    }),
+    ...readCommonPagePartials({ cacheBust, isDevBuild, iti_styles: "none" }),
+    layout: fs.readFileSync("tmp/404/not_found_layout.html", "utf8"),
+    common_body_end: readCommonBodyEndScript(),
+  }),
+});
+
+// 8. Docs pages — content (markdown) → layout → page.
+const docsDefinitions = [
+  {
+    key: "integrations",
+    title: "Choose your integration",
+    metaDesc:
+      "Get started with intl-tel-input. Choose your integration: vanilla JavaScript library, or React, Vue, Angular, or Svelte component.",
+  },
+  {
+    key: "vanilla_javascript",
+    title: "Vanilla JavaScript library",
+    metaDesc:
+      "How to get up and running with the intl-tel-input vanilla JavaScript library.",
+  },
+  {
+    key: "best_practices",
+    title: "Best practices",
+    metaDesc:
+      "General advice for getting the most out of intl-tel-input — utils, validation, E.164 storage, initial country, and localisation.",
+  },
+  {
+    key: "options",
+    title: "Initialisation options",
+    metaDesc:
+      "All the different options you can use when initialising intl-tel-input.",
+  },
+  {
+    key: "localisation",
+    title: "Localisation",
+    metaDesc:
+      "How to localise country names and user interface strings, including RTL support.",
+  },
+  {
+    key: "accessibility",
+    title: "Accessibility",
+    metaDesc:
+      "Accessibility guidance for intl-tel-input, including keyboard and screen reader support.",
+  },
+  {
+    key: "methods",
+    title: "Methods",
+    metaDesc:
+      "All the different methods you can call on an intl-tel-input instance.",
+  },
+  {
+    key: "types",
+    title: "Types",
+    metaDesc:
+      "Reference for the public types and constant objects exposed by intl-tel-input — NumberType, ValidationError, Country, and more.",
+  },
+  {
+    key: "utils",
+    title: "Utils script",
+    metaDesc: "Learn about the utils script, what it's for and how to load it.",
+  },
+  {
+    key: "theming",
+    title: "Theming / dark mode",
+    metaDesc:
+      "How to theme intl-tel-input, including how to set it up for dark mode.",
+  },
+  {
+    key: "troubleshooting",
+    title: "Troubleshooting",
+    metaDesc: "Solutions to common problems and FAQs about intl-tel-input.",
+  },
+  {
+    key: "faq",
+    title: "FAQ",
+    metaDesc:
+      "Frequently asked questions about intl-tel-input, including common setup and localisation topics.",
+  },
+  {
+    key: "react_component",
+    title: "React component",
+    metaDesc: "How to use the intl-tel-input React component.",
+  },
+  {
+    key: "vue_component",
+    title: "Vue component",
+    metaDesc: "How to use the intl-tel-input Vue component.",
+  },
+  {
+    key: "angular_component",
+    title: "Angular component",
+    metaDesc: "How to use the intl-tel-input Angular component.",
+  },
+  {
+    key: "svelte_component",
+    title: "Svelte component",
+    metaDesc: "How to use the intl-tel-input Svelte component.",
+  },
+];
+
+for (const { key, title, metaDesc } of docsDefinitions) {
+  const mdPath = path.join("src", "docs", "markdown", `${key}.md`);
+  const urlSlug = key.replace(/_/g, "-");
+  const destPath = `dist/docs/${urlSlug}.html`;
+  const canonicalUrl = `https://intl-tel-input.com/docs/${urlSlug}`;
+  const fullTitle = `${title} docs - International Telephone Input`;
+
+  tasks.push({
+    name: `docs_content_${key}`,
+    src: "src/docs/docs_content_template.html.ejs",
+    dest: `tmp/docs/${key}_content.html`,
+    data: () => ({
+      docKey: key,
+      html: (() => {
+        let source = fs.readFileSync(mdPath, "utf8");
+        const locales = getLocales();
+        source = source.replaceAll(
+          "<!-- LOCALE_COUNT -->",
+          String(locales.length),
+        );
+        if (key === "localisation") {
+          const localeList = createLocaleListText(locales);
+          source = source.replace(
+            "<!-- LOCALE_LIST -->",
+            `\n${localeList}\n`,
+          );
+        }
+        return md.render(source, { docKey: key });
+      })(),
+    }),
+  });
+
+  tasks.push({
+    name: `docs_layout_${key}`,
+    src: "src/layout_template.html.ejs",
+    dest: `tmp/docs/${key}_layout.html`,
+    data: () => {
+      const content = fs.readFileSync(`tmp/docs/${key}_content.html`, "utf8");
+      return {
+        showLeftSidebar: true,
+        layoutClass: "iti-layout-both-sidebars",
+        nav: fs.readFileSync("src/docs/docs_nav_template.html.ejs", "utf8"),
+        right_sidebar: buildDocsContentsSidebar(extractDocsHeadings(content)),
+        content,
+        name: key,
+        pageType: "docs",
+        docsDropdownPages,
+        examplesDropdownSections,
+        ...readNavPartials({
+          pageType: "docs",
+          name: key,
+          docsDropdownPages,
+          examplesDropdownSections,
+        }),
+      };
+    },
+  });
+
+  tasks.push({
+    name: `docs_page_${key}`,
+    src: "src/docs/docs_page_template.html.ejs",
+    dest: destPath,
+    data: () => ({
+      cacheBust,
+      head_title: fullTitle,
+      canonical_url: canonicalUrl,
+      meta_desc: metaDesc,
+      og_meta_tags: buildOpenGraphMetaTags({
+        title: fullTitle,
+        description: metaDesc,
+        url: canonicalUrl,
+      }),
+      ...readCommonPagePartials({
+        cacheBust,
+        isDevBuild,
+        highlightjs_styles: true,
+        iti_styles: "none",
+      }),
+      layout: fs.readFileSync(`tmp/docs/${key}_layout.html`, "utf8"),
+      common_body_end: readCommonBodyEndScript(),
+    }),
+  });
+}
+
+// Run --------------------------------------------------------------------
+
+const tasksByName = new Map(tasks.map((t) => [t.name, t]));
+
+function runTask(t) {
+  renderPage(t);
+  console.log(`File '${t.dest}' created.`);
+}
+
+if (taskFilter) {
+  // --task=name1,name2,...
+  const wanted = taskFilter
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  for (const name of wanted) {
+    const t = tasksByName.get(name);
+    if (!t) {
+      console.error(`build-pages: unknown task '${name}'`);
+      process.exit(1);
+    }
+    runTask(t);
+  }
+} else {
+  for (const t of tasks) {
+    runTask(t);
+  }
+}
